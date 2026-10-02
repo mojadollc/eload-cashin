@@ -14,6 +14,15 @@ const GBITS_FIELDS = [
   { key: "GBITS_API_URL", label: "GbitsAPI URL", placeholder: "https://api.gbits.com" },
   { key: "GBITS_API_KEY", label: "GbitsAPI Key", placeholder: "your-gbits-key" },
 ];
+const FIREBASE_FIELDS = [
+  { key: "FIREBASE_PROJECT_ID", label: "Project ID", placeholder: "your-project-id" },
+  { key: "FIREBASE_CLIENT_EMAIL", label: "Client Email", placeholder: "firebase-adminsdk@project.iam.gserviceaccount.com" },
+  { key: "FIREBASE_PRIVATE_KEY", label: "Private Key", placeholder: "-----BEGIN PRIVATE KEY-----\n..." },
+  { key: "NEXT_PUBLIC_FIREBASE_API_KEY", label: "Web API Key", placeholder: "AIzaSy..." },
+  { key: "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", label: "Auth Domain", placeholder: "your-project.firebaseapp.com" },
+  { key: "NEXT_PUBLIC_FIREBASE_PROJECT_ID", label: "Public Project ID", placeholder: "your-project-id" },
+  { key: "NEXT_PUBLIC_FIREBASE_APP_ID", label: "App ID", placeholder: "1:000000000000:web:xxx" },
+];
 const GENERAL_FIELDS = [
   { key: "APP_URL", label: "App URL", placeholder: "https://cashin-tap.com" },
 ];
@@ -87,6 +96,16 @@ export default function AdminSettingsPage() {
             <h2 className="font-semibold">GbitsAPI</h2>
             <p className="text-xs text-gray-400">E-load provider for Globe, Smart, DITO, TM, TNT, Sun.</p>
             {GBITS_FIELDS.map(renderField)}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardContent className="pt-6 space-y-4">
+            <h2 className="font-semibold">Firebase (Phone OTP)</h2>
+            <p className="text-xs text-gray-400">Used for SMS OTP verification during registration. Get these from your Firebase Console → Project Settings.</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {FIREBASE_FIELDS.map(renderField)}
+            </div>
           </CardContent>
         </Card>
 

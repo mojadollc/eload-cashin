@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { auth } from "@/lib/firebase/client";
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,32 +15,88 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"register" | "verify">("register");
   const [otp, setOtp] = useState("");
+  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
+  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  useEffect(() => {
+    return () => { recaptchaRef.current?.clear(); };
+  }, []);
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) { setError("Passwords do not match"); return; }
     setLoading(true); setError("");
-    const res = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+
+    // 1. Create account in our DB first
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
     const data = await res.json();
+    if (!res.ok) { setError(data.error || "Registration failed"); setLoading(false); return; }
+
+    // 2. Send Firebase OTP
+    try {
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+      }
+      const phoneNumber = form.mobile.replace(/^0/, "+63");
+      const result = await signInWithPhoneNumber(auth, phoneNumber, recaptchaRef.current);
+      setConfirmation(result);
+      setStep("verify");
+    } catch (err: any) {
+      setError(err?.message || "Failed to send OTP. Check your number and try again.");
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = null;
+    }
     setLoading(false);
-    if (!res.ok) { setError(data.error || "Registration failed"); return; }
-    setStep("verify");
   };
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!confirmation) return;
     setLoading(true); setError("");
-    const res = await fetch("/api/auth/verify-otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mobile: form.mobile, code: otp }) });
-    const data = await res.json();
+
+    try {
+      // 3. Confirm OTP with Firebase
+      const result = await confirmation.confirm(otp);
+      const firebaseToken = await result.user.getIdToken();
+
+      // 4. Tell our backend to activate the account
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile: form.mobile, firebaseToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error); setLoading(false); return; }
+      router.push("/login?verified=1");
+    } catch {
+      setError("Invalid OTP. Please try again.");
+    }
     setLoading(false);
-    if (!res.ok) { setError(data.error); return; }
-    router.push("/login?verified=1");
+  };
+
+  const handleResend = async () => {
+    setError(""); setOtp("");
+    try {
+      recaptchaRef.current?.clear();
+      recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+      const phoneNumber = form.mobile.replace(/^0/, "+63");
+      const result = await signInWithPhoneNumber(auth, phoneNumber, recaptchaRef.current);
+      setConfirmation(result);
+    } catch (err: any) {
+      setError(err?.message || "Failed to resend OTP.");
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <div id="recaptcha-container" />
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-[#038E80]">CashIn Tap</h1>
@@ -62,10 +120,15 @@ export default function RegisterPage() {
               </form>
             ) : (
               <form onSubmit={handleVerify} className="space-y-4">
-                <p className="text-sm text-gray-600">Enter the 6-digit OTP sent to <strong>{form.mobile}</strong></p>
+                <p className="text-sm text-gray-600">
+                  A 6-digit OTP was sent via SMS to <strong>{form.mobile}</strong>
+                </p>
                 <Input label="OTP Code" placeholder="000000" maxLength={6} value={otp} onChange={e => setOtp(e.target.value)} required />
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <Button type="submit" className="w-full" size="lg" loading={loading}>Verify</Button>
+                <button type="button" onClick={handleResend} className="w-full text-sm text-[#038E80] hover:underline">
+                  Resend OTP
+                </button>
               </form>
             )}
             <p className="text-center text-sm text-gray-500 mt-4">
