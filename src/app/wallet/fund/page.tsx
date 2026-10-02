@@ -1,0 +1,70 @@
+"use client";
+import { useState } from "react";
+import { useApi } from "@/components/shared/use-api";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatCurrency } from "@/lib/utils";
+
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
+const PAYMENT_METHODS = ["GCash", "Maya", "Card", "Bank Transfer", "OTC"];
+
+export default function FundWalletPage() {
+  const api = useApi();
+  const [amount, setAmount] = useState<number>(1000);
+  const [method, setMethod] = useState("GCash");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const fee = 15;
+
+  const handleFund = async () => {
+    setLoading(true); setError("");
+    const data = await api.post("/api/wallet/fund", { amount, paymentMethod: method });
+    setLoading(false);
+    if (data?.checkoutUrl) window.location.href = data.checkoutUrl;
+    else setError(data?.error || "Failed to create payment");
+  };
+
+  return (
+    <div className="p-4 lg:p-8 max-w-md mx-auto space-y-6">
+      <h1 className="text-2xl font-bold">Fund Wallet</h1>
+
+      <Card>
+        <CardContent className="pt-6 space-y-5">
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">How much?</p>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {QUICK_AMOUNTS.map(a => (
+                <button key={a} onClick={() => setAmount(a)} className={`py-2 rounded-xl text-sm font-semibold border-2 transition-all ${amount === a ? "border-[#038E80] bg-[#038E80]/5 text-[#038E80]" : "border-gray-200 text-gray-600"}`}>
+                  ₱{a.toLocaleString()}
+                </button>
+              ))}
+            </div>
+            <Input type="number" placeholder="Custom amount" value={amount} onChange={e => setAmount(Number(e.target.value))} min={100} />
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">Payment Method</p>
+            <div className="space-y-2">
+              {PAYMENT_METHODS.map(m => (
+                <label key={m} className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all" style={{ borderColor: method === m ? "#038E80" : "#E5E7EB" }}>
+                  <input type="radio" name="method" value={m} checked={method === m} onChange={() => setMethod(m)} className="accent-[#038E80]" />
+                  <span className="text-sm font-medium">{m}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-medium">{formatCurrency(amount)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Service Fee</span><span className="font-medium">{formatCurrency(fee)}</span></div>
+            <div className="flex justify-between border-t pt-2 mt-2"><span className="font-semibold">Total</span><span className="font-bold text-[#038E80]">{formatCurrency(amount + fee)}</span></div>
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <Button className="w-full" size="lg" loading={loading} onClick={handleFund}>Continue Payment</Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

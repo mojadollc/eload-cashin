@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  RESTRICTED
+  PENDING_VERIFICATION
+}
+
+enum KycStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  FINANCE
+  SUPPORT
+  USER
+}
+
+enum WalletStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum EntryType {
+  CREDIT
+  DEBIT
+}
+
+enum HoldStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+}
+
+enum TransactionType {
+  WALLET_FUND
+  ELOAD
+  CASHOUT
+  REFUND
+  REVERSAL
+  ADMIN_ADJUSTMENT
+  FEE
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REVERSED
+  REFUNDED
+}
+
+enum FeeType {
+  FIXED
+  PERCENTAGE
+}
+
+enum FeeService {
+  WALLET_FUND
+  ELOAD
+  CASHOUT
+}
+
+enum Provider {
+  XENDIT
+  GBITS
+  SYSTEM
+}
+
+enum CashoutStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REVERSED
+  REJECTED
+  PENDING_COMPLIANCE
+}
+
+model User {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  firstName       String
+  lastName        String
+  mobile          String    @unique
+  email           String    @unique
+  passwordHash    String
+  role            UserRole  @default(USER)
+  status          UserStatus @default(PENDING_VERIFICATION)
+  kycStatus       KycStatus @default(NONE)
+  referralCode    String    @unique
+  referredBy      String?
+  mobileVerified  Boolean   @default(false)
+  emailVerified   Boolean   @default(false)
+  twoFaEnabled    Boolean   @default(false)
+  twoFaSecret     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  wallet          Wallet?
+  transactions    Transaction[]
+  otpCodes        OtpCode[]
+  sessions        Session[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  cashoutDestinations CashoutDestination[]
+
+  @@index([mobile, email])
+}
+
+model Wallet {
+  id               String       @id @default(cuid())
+  walletId         String       @unique
+  accountNumber    String       @unique
+  userId           String       @unique
+  currency         String       @default("PHP")
+  availableBalance Decimal      @default(0) @db.Decimal(15, 2)
+  pendingBalance   Decimal      @default(0) @db.Decimal(15, 2)
+  status           WalletStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user             User         @relation(fields: [userId], references: [id])
+  ledgerEntries    WalletLedger[]
+  holds            WalletHold[]
+  adjustments      WalletAdjustment[]
+}
+
+model WalletLedger {
+  id             String    @id @default(cuid())
+  walletId       String
+  transactionId  String?
+  entryType      EntryType
+  amount         Decimal   @db.Decimal(15, 2)
+  balanceBefore  Decimal   @db.Decimal(15, 2)
+  balanceAfter   Decimal   @db.Decimal(15, 2)
+  reference      String?
+  description    String?
+  createdAt      DateTime  @default(now())
+
+  wallet         Wallet    @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt])
+}
+
+model WalletHold {
+  id            String     @id @default(cuid())
+  walletId      String
+  transactionId String?
+  amount        Decimal    @db.Decimal(15, 2)
+  status        HoldStatus @default(ACTIVE)
+  expiresAt     DateTime?
+  createdAt     DateTime   @default(now())
+
+  wallet        Wallet     @relation(fields: [walletId], references: [id])
+}
+
+model WalletAdjustment {
+  id          String   @id @default(cuid())
+  walletId    String
+  adminId     String
+  amount      Decimal  @db.Decimal(15, 2)
+  entryType   EntryType
+  reason      String
+  createdAt   DateTime @default(now())
+
+  wallet      Wallet   @relation(fields: [walletId], references: [id])
+}
+
+model Transaction {
+  id                String            @id @default(cuid())
+  transactionNumber String            @unique
+  userId            String
+  type              TransactionType
+  status            TransactionStatus @default(PENDING)
+  grossAmount       Decimal           @db.Decimal(15, 2)
+  feeAmount         Decimal           @default(0) @db.Decimal(15, 2)
+  netAmount         Decimal           @db.Decimal(15, 2)
+  currency          String            @default("PHP")
+  provider          Provider?
+  providerReference String?
+  idempotencyKey    String            @unique
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  completedAt       DateTime?
+  failedAt          DateTime?
+  updatedAt         DateTime          @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id])
+  statusHistory     TransactionStatusHistory[]
+  providerTxn       ProviderTransaction?
+  eloadTxn          EloadTransaction?
+  cashoutTxn        CashoutTransaction?
+  fundingTxn        FundingTransaction?
+
+  @@index([userId, type, status, createdAt])
+}
+
+model TransactionStatusHistory {
+  id            String            @id @default(cuid())
+  transactionId String
+  status        TransactionStatus
+  note          String?
+  createdAt     DateTime          @default(now())
+
+  transaction   Transaction       @relation(fields: [transactionId], references: [id])
+}
+
+model FundingTransaction {
+  id              String   @id @default(cuid())
+  transactionId   String   @unique
+  paymentMethod   String
+  xenditInvoiceId String?
+  xenditPaymentId String?
+  checkoutUrl     String?
+  paidAt          DateTime?
+
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model EloadProduct {
+  id          String   @id @default(cuid())
+  provider    String   @default("GBITS")
+  network     String
+  productCode String
+  name        String
+  amount      Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([provider, productCode])
+  @@index([network, isActive])
+}
+
+model EloadTransaction {
+  id              String   @id @default(cuid())
+  transactionId   String   @unique
+  mobileNumber    String
+  network         String
+  productCode     String
+  loadAmount      Decimal  @db.Decimal(10, 2)
+  providerRef     String?
+  providerStatus  String?
+
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model CashoutDestination {
+  id            String   @id @default(cuid())
+  userId        String
+  channel       String
+  accountNumber String
+  accountName   String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model CashoutTransaction {
+  id              String        @id @default(cuid())
+  transactionId   String        @unique
+  channel         String
+  accountNumber   String
+  accountName     String
+  disbursementId  String?
+  cashoutStatus   CashoutStatus @default(PENDING)
+
+  transaction     Transaction   @relation(fields: [transactionId], references: [id])
+}
+
+model FeeRule {
+  id            String     @id @default(cuid())
+  service       FeeService
+  feeType       FeeType
+  amount        Decimal?   @db.Decimal(10, 2)
+  rate          Decimal?   @db.Decimal(5, 4)
+  minimum       Decimal?   @db.Decimal(10, 2)
+  maximum       Decimal?   @db.Decimal(10, 2)
+  minAmount     Decimal?   @db.Decimal(10, 2)
+  maxAmount     Decimal?   @db.Decimal(10, 2)
+  userTier      String?
+  isActive      Boolean    @default(true)
+  effectiveFrom DateTime   @default(now())
+  effectiveUntil DateTime?
+  createdAt     DateTime   @default(now())
+
+  @@index([service, isActive])
+}
+
+model ProviderTransaction {
+  id                  String   @id @default(cuid())
+  transactionId       String   @unique
+  provider            Provider
+  providerTransactionId String?
+  requestPayload      Json?
+  responsePayload     Json?
+  status              String?
+  attemptCount        Int      @default(0)
+  lastAttemptAt       DateTime?
+  createdAt           DateTime @default(now())
+
+  transaction         Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model ProviderWebhook {
+  id          String   @id @default(cuid())
+  provider    Provider
+  eventType   String
+  payload     Json
+  reference   String?
+  processed   Boolean  @default(false)
+  processedAt DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([provider, processed, createdAt])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String
+  type      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, read, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  adminId   String?
+  action    String
+  entity    String?
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, action, createdAt])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
