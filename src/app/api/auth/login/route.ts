@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({
     accessToken,
-    user: { id: user.userId, firstName: user.firstName, lastName: user.lastName, role: user.role },
+    user: { id: user.userId, firstName: user.firstName, lastName: user.lastName, role: user.role, mobile: user.mobile, email: user.email },
   });
   res.cookies.set("access_token", accessToken, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 900 });
   res.cookies.set("refresh_token", refreshToken, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 604800 });
