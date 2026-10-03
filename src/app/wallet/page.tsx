@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,13 +11,27 @@ import { Plus, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 
 const FILTERS = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
 
-export default function WalletPage() {
+function WalletContent() {
   const api = useApi();
+  const searchParams = useSearchParams();
   const [wallet, setWallet] = useState<any>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [filter, setFilter] = useState("All");
+  const [banner, setBanner] = useState<"funded" | "cancelled" | null>(null);
 
   useEffect(() => {
+    const funded = searchParams.get("funded");
+    const failed = searchParams.get("failed");
+    const ref = searchParams.get("ref");
+
+    if (funded === "1") setBanner("funded");
+
+    if (failed === "1" && ref) {
+      api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).then(() => {
+        setBanner("cancelled");
+      });
+    }
+
     api.get("/api/wallet").then(setWallet);
     api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
   }, []);
@@ -24,6 +39,13 @@ export default function WalletPage() {
   return (
     <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Wallet</h1>
+
+      {banner === "funded" && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 font-medium">✅ Wallet funded successfully!</div>
+      )}
+      {banner === "cancelled" && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 font-medium">❌ Payment cancelled. Your transaction has been voided.</div>
+      )}
 
       <div className="bg-gradient-to-br from-[#038E80] to-[#058174] rounded-2xl p-6 text-white">
         <p className="text-white/70 text-sm">Available Balance</p>
@@ -75,4 +97,8 @@ export default function WalletPage() {
       </Card>
     </div>
   );
+}
+
+export default function WalletPage() {
+  return <Suspense><WalletContent /></Suspense>;
 }
