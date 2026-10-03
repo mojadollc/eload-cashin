@@ -247,7 +247,7 @@ pm2 delete cashin-tap 2>/dev/null || true
 pm2 delete cashin-tap-worker 2>/dev/null || true
 pm2 start ecosystem.config.js
 pm2 save
-env PATH=\$PATH:/usr/bin pm2 startup systemd -u root --hp /root 2>/dev/null | tail -1 | bash || true
+pm2 startup systemd -u root --hp /root 2>/dev/null | tail -1 | bash || true
 pm2 list
 "@
 SSH-Run $pm2Script | Write-Host
