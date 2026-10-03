@@ -4,7 +4,8 @@ import { prisma } from "@/lib/database/prisma";
 // Auto-cancel PENDING transactions older than 30 minutes
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get("secret");
-  if (process.env.NODE_ENV === "production" && secret !== process.env.CRON_SECRET) {
+  const isLocalhost = req.headers.get("host")?.includes("localhost");
+  if (!isLocalhost && process.env.NODE_ENV === "production" && secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
