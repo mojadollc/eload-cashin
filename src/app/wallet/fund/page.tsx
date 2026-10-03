@@ -10,45 +10,44 @@ const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 const PAYMENT_CHANNELS = [
   { group: "E-Wallets", items: [
-    { id: "GCASH", label: "GCash", icon: "💙" },
+    { id: "QRPH", label: "QRPh", icon: "📷" },
     { id: "PAYMAYA", label: "Maya", icon: "💚" },
-    { id: "GRABPAY", label: "GrabPay", icon: "🟢" },
     { id: "SHOPEEPAY", label: "ShopeePay", icon: "🟠" },
+    { id: "GRABPAY", label: "GrabPay", icon: "🟢" },
   ]},
-  { group: "Banks (Online)", items: [
+  { group: "Online Banking", items: [
     { id: "BPI", label: "BPI", icon: "🏦" },
-    { id: "BDO", label: "BDO", icon: "🏦" },
     { id: "UNIONBANK", label: "UnionBank", icon: "🏦" },
-    { id: "METROBANK", label: "Metrobank", icon: "🏦" },
     { id: "RCBC", label: "RCBC", icon: "🏦" },
-    { id: "SECURITY_BANK", label: "Security Bank", icon: "🏦" },
   ]},
-  { group: "Over-the-Counter", items: [
-    { id: "7ELEVEN", label: "7-Eleven", icon: "🏪" },
-    { id: "CEBUANA", label: "Cebuana", icon: "🏪" },
-    { id: "MLHUILLIER", label: "M Lhuillier", icon: "🏪" },
-    { id: "PALAWAN", label: "Palawan Pawnshop", icon: "🏪" },
-  ]},
-  { group: "Card", items: [
-    { id: "CREDIT_CARD", label: "Credit Card", icon: "💳" },
-    { id: "DEBIT_CARD", label: "Debit Card", icon: "💳" },
+  { group: "Others", items: [
+    { id: "GOOGLEPAY", label: "Google Pay", icon: "🔵" },
+    { id: "APPLEPAY", label: "Apple Pay", icon: "🍎" },
   ]},
 ];
 
 export default function FundWalletPage() {
   const api = useApi();
   const [amount, setAmount] = useState<number>(1000);
-  const [method, setMethod] = useState("GCASH");
+  const [method, setMethod] = useState("QRPH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fee = 15;
 
   const handleFund = async () => {
     setLoading(true); setError("");
-    const data = await api.post("/api/wallet/fund", { amount, paymentMethod: method });
-    setLoading(false);
-    if (data?.checkoutUrl) window.location.href = data.checkoutUrl;
-    else setError(data?.error || "Failed to create payment. Please try again.");
+    try {
+      const data = await api.post("/api/wallet/fund", { amount, paymentMethod: method });
+      if (data?.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setError(data?.error || "Failed to create payment. Please try again.");
+        setLoading(false);
+      }
+    } catch (e: any) {
+      setError(e?.message || "Network error. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (

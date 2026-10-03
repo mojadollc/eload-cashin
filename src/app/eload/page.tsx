@@ -226,18 +226,6 @@ export default function EloadPage() {
               </div>
             ) : currentProducts.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-6">No products available</p>
-            ) : category === "Telco" ? (
-              <div className="grid grid-cols-3 gap-2">
-                {currentProducts.map((p: any) => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelected(p)}
-                    className={`py-4 rounded-xl border-2 transition-all ${selected?.id === p.id ? "border-[#038E80] bg-[#038E80]/5" : "border-gray-100 bg-gray-50"}`}
-                  >
-                    <p className={`text-base font-bold ${selected?.id === p.id ? "text-[#038E80]" : "text-[#17202A]"}`}>₱{Number(p.amount)}</p>
-                  </button>
-                ))}
-              </div>
             ) : (
               <div className="space-y-2">
                 {currentProducts.map((p: any) => (

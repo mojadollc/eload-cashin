@@ -26,10 +26,9 @@ export async function createInvoice(params: CreateInvoiceParams) {
     failure_redirect_url: params.failureRedirectUrl || `${process.env.APP_URL}/wallet?failed=1`,
     currency: "PHP",
     payment_methods: [
-      "GCASH", "PAYMAYA", "GRABPAY", "SHOPEEPAY",
-      "BDO", "BPI", "UNIONBANK", "METROBANK", "CHINABANK", "RCBC", "SECURITY_BANK",
-      "7ELEVEN", "CEBUANA", "MLHUILLIER", "PALAWAN", "DP_ECPAY_LOAN",
-      "CREDIT_CARD", "DEBIT_CARD",
+      "QRPH", "PAYMAYA", "SHOPEEPAY", "GRABPAY",
+      "BPI", "UNIONBANK", "RCBC",
+      "GOOGLEPAY", "APPLEPAY",
     ],
   });
   return data;
