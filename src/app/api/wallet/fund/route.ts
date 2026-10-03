@@ -35,7 +35,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
         idempotencyKey: generateIdempotencyKey(),
       },
     });
-    await tx.fundingTransaction.create({ data: { transactionId: txn.id } });
+    await tx.fundingTransaction.create({ data: { transactionId: txn.id, paymentMethod: parsed.data.paymentMethod || "" } });
     await tx.providerTransaction.create({ data: { transactionId: txn.id, provider: Provider.XENDIT } });
     return txn;
   });
