@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
-import { getAuth } from "@/lib/firebase/admin";
+import { getAdminAuth } from "@/lib/firebase/admin";
 import { z } from "zod";
 
 const schema = z.object({
@@ -15,15 +15,13 @@ export async function POST(req: NextRequest) {
 
   const { mobile, firebaseToken } = parsed.data;
 
-  // Verify the Firebase ID token
   let decoded;
   try {
-    decoded = await getAuth().verifyIdToken(firebaseToken);
+    decoded = await getAdminAuth().verifyIdToken(firebaseToken);
   } catch {
     return NextResponse.json({ error: "Invalid or expired verification token" }, { status: 400 });
   }
 
-  // Normalize both numbers to E.164 for comparison
   const normalizedMobile = mobile.replace(/^0/, "+63");
   if (decoded.phone_number !== normalizedMobile) {
     return NextResponse.json({ error: "Phone number mismatch" }, { status: 400 });

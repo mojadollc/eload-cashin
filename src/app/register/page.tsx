@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { auth } from "@/lib/firebase/client";
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
+import type { RecaptchaVerifier as RV, ConfirmationResult } from "firebase/auth";
+
+export const dynamic = "force-dynamic";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<"register" | "verify">("register");
   const [otp, setOtp] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
-  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
+  const recaptchaRef = useRef<RV | null>(null);
 
   useEffect(() => {
     return () => { recaptchaRef.current?.clear(); };
@@ -37,10 +38,21 @@ export default function RegisterPage() {
       body: JSON.stringify(form),
     });
     const data = await res.json();
-    if (!res.ok) { setError(data.error || "Registration failed"); setLoading(false); return; }
+    if (!res.ok) {
+      // Handle Zod validation errors
+      if (data.error?.fieldErrors) {
+        const messages = Object.values(data.error.fieldErrors).flat().join(". ");
+        setError(messages || "Validation failed");
+      } else {
+        setError(data.error || "Registration failed");
+      }
+      setLoading(false); return;
+    }
 
     // 2. Send Firebase OTP
     try {
+      const { auth } = await import("@/lib/firebase/client");
+      const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
       if (!recaptchaRef.current) {
         recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
       }
@@ -84,6 +96,8 @@ export default function RegisterPage() {
   const handleResend = async () => {
     setError(""); setOtp("");
     try {
+      const { auth } = await import("@/lib/firebase/client");
+      const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
       recaptchaRef.current?.clear();
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
       const phoneNumber = form.mobile.replace(/^0/, "+63");
