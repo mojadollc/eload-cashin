@@ -40,7 +40,13 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return txn;
   });
 
-  const invoice = await createInvoice({ externalId: txnNumber, amount: totalAmount, description: `Wallet Funding - ${txnNumber}`, payerEmail: user.email });
+  let invoice;
+  try {
+    invoice = await createInvoice({ externalId: txnNumber, amount: totalAmount, description: `Wallet Funding - ${txnNumber}`, payerEmail: user.email ?? undefined });
+  } catch (err: any) {
+    await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.FAILED } });
+    return NextResponse.json({ error: err.message || "Payment provider error" }, { status: 502 });
+  }
 
   await prisma.fundingTransaction.update({ where: { transactionId: transaction.id }, data: { xenditInvoiceId: invoice.id, checkoutUrl: invoice.invoice_url, paymentMethod: parsed.data.paymentMethod || "" } });
 

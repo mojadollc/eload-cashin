@@ -17,21 +17,21 @@ export interface CreateInvoiceParams {
 }
 
 export async function createInvoice(params: CreateInvoiceParams) {
-  const { data } = await xenditClient.post("/v2/invoices", {
-    external_id: params.externalId,
-    amount: params.amount,
-    description: params.description,
-    payer_email: params.payerEmail,
-    success_redirect_url: params.successRedirectUrl || `${process.env.APP_URL}/wallet?funded=1`,
-    failure_redirect_url: params.failureRedirectUrl || `${process.env.APP_URL}/wallet?failed=1`,
-    currency: "PHP",
-    payment_methods: [
-      "QRPH", "PAYMAYA", "SHOPEEPAY", "GRABPAY",
-      "BPI", "UNIONBANK", "RCBC",
-      "GOOGLEPAY", "APPLEPAY",
-    ],
-  });
-  return data;
+  try {
+    const { data } = await xenditClient.post("/v2/invoices", {
+      external_id: params.externalId,
+      amount: params.amount,
+      description: params.description,
+      payer_email: params.payerEmail,
+      success_redirect_url: params.successRedirectUrl || `${process.env.APP_URL}/wallet?funded=1`,
+      failure_redirect_url: params.failureRedirectUrl || `${process.env.APP_URL}/wallet?failed=1`,
+      currency: "PHP",
+    });
+    return data;
+  } catch (err: any) {
+    const xenditError = err?.response?.data;
+    throw new Error(xenditError?.message || xenditError?.error_code || "Xendit invoice creation failed");
+  }
 }
 
 export interface CreateDisbursementParams {
