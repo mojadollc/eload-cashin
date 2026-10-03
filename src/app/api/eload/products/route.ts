@@ -16,8 +16,8 @@ export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) =>
       for (const p of liveProducts) {
         await prisma.eloadProduct.upsert({
           where: { provider_productCode: { provider: "GBITS", productCode: p.productCode } },
-          update: { name: p.name, amount: p.amount, isActive: true },
-          create: { provider: "GBITS", category: "Telco", network: p.network, productCode: p.productCode, name: p.name, amount: p.amount },
+          update: { name: p.name, amount: p.amount, category: p.category || "Telco", description: p.description || null, isActive: true },
+          create: { provider: "GBITS", category: p.category || "Telco", network: p.network, productCode: p.productCode, name: p.name, amount: p.amount, description: p.description || null },
         });
       }
     }
