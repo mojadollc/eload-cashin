@@ -25,11 +25,28 @@ export async function POST(req: NextRequest) {
 
     const { firstName, lastName, mobile, email, password, referralCode } = parsed.data;
     const existing = await prisma.user.findFirst({ where: { OR: [{ mobile }, { email }] } });
-    if (existing) return NextResponse.json({ error: "Mobile or email already registered" }, { status: 409 });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    // If existing user is not verified, allow re-registration (update details and resend OTP)
+    if (existing && !existing.mobileVerified) {
+      const user = await prisma.$transaction(async (tx: any) => {
+        const u = await tx.user.update({
+          where: { id: existing.id },
+          data: { firstName, lastName, email, passwordHash },
+        });
+        await tx.otpCode.deleteMany({ where: { userId: u.id, type: "MOBILE_VERIFY" } });
+        await tx.otpCode.create({ data: { userId: u.id, code: generateOtp(), type: "MOBILE_VERIFY", expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
+        return u;
+      });
+      return NextResponse.json({ message: "Registration updated. Please verify your mobile.", userId: user.userId });
+    }
+
+    // If verified, block registration
+    if (existing) return NextResponse.json({ error: "Mobile or email already registered. Please login.", verified: true }, { status: 409 });
 
     const count = await prisma.user.count();
     const seq = count + 1;
-    const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.$transaction(async (tx: any) => {
       const u = await tx.user.create({
