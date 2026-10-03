@@ -236,9 +236,11 @@ model FundingTransaction {
 model EloadProduct {
   id          String   @id @default(cuid())
   provider    String   @default("GBITS")
+  category    String   @default("Telco")
   network     String
   productCode String
   name        String
+  description String?
   amount      Decimal  @db.Decimal(10, 2)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
