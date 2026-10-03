@@ -11,17 +11,24 @@ export const dynamic = "force-dynamic";
 
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
-  const digits = value.padEnd(6, "").split("").slice(0, 6);
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] || "");
 
   const handleChange = (i: number, v: string) => {
     const d = v.replace(/\D/g, "").slice(-1);
     const next = digits.map((c, idx) => idx === i ? d : c).join("");
-    onChange(next);
+    onChange(next.trimEnd());
     if (d && i < 5) inputs.current[i + 1]?.focus();
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) inputs.current[i - 1]?.focus();
+    if (e.key === "Backspace") {
+      if (digits[i]) {
+        const next = digits.map((c, idx) => idx === i ? "" : c).join("");
+        onChange(next.trimEnd());
+      } else if (i > 0) {
+        inputs.current[i - 1]?.focus();
+      }
+    }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
