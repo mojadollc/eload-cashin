@@ -42,7 +42,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   const invoice = await createInvoice({ externalId: txnNumber, amount: totalAmount, description: `Wallet Funding - ${txnNumber}`, payerEmail: user.email });
 
-  await prisma.fundingTransaction.update({ where: { transactionId: transaction.id }, data: { xenditInvoiceId: invoice.id, checkoutUrl: invoice.invoice_url } });
+  await prisma.fundingTransaction.update({ where: { transactionId: transaction.id }, data: { xenditInvoiceId: invoice.id, checkoutUrl: invoice.invoice_url, paymentMethod: parsed.data.paymentMethod || "" } });
 
   return NextResponse.json({ checkoutUrl: invoice.invoice_url, transactionNumber: txnNumber, amount, fee, total: totalAmount });
 });

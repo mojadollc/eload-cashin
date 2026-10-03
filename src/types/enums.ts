@@ -22,6 +22,7 @@ export const TransactionStatus = {
   FAILED: "FAILED",
   REVERSED: "REVERSED",
   REFUNDED: "REFUNDED",
+  CANCELLED: "CANCELLED",
 } as const;
 export type TransactionStatus = keyof typeof TransactionStatus;
 

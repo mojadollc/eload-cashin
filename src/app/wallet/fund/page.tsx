@@ -7,12 +7,38 @@ import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
-const PAYMENT_METHODS = ["GCash", "Maya", "Card", "Bank Transfer", "OTC"];
+
+const PAYMENT_CHANNELS = [
+  { group: "E-Wallets", items: [
+    { id: "GCASH", label: "GCash", icon: "💙" },
+    { id: "PAYMAYA", label: "Maya", icon: "💚" },
+    { id: "GRABPAY", label: "GrabPay", icon: "🟢" },
+    { id: "SHOPEEPAY", label: "ShopeePay", icon: "🟠" },
+  ]},
+  { group: "Banks (Online)", items: [
+    { id: "BPI", label: "BPI", icon: "🏦" },
+    { id: "BDO", label: "BDO", icon: "🏦" },
+    { id: "UNIONBANK", label: "UnionBank", icon: "🏦" },
+    { id: "METROBANK", label: "Metrobank", icon: "🏦" },
+    { id: "RCBC", label: "RCBC", icon: "🏦" },
+    { id: "SECURITY_BANK", label: "Security Bank", icon: "🏦" },
+  ]},
+  { group: "Over-the-Counter", items: [
+    { id: "7ELEVEN", label: "7-Eleven", icon: "🏪" },
+    { id: "CEBUANA", label: "Cebuana", icon: "🏪" },
+    { id: "MLHUILLIER", label: "M Lhuillier", icon: "🏪" },
+    { id: "PALAWAN", label: "Palawan Pawnshop", icon: "🏪" },
+  ]},
+  { group: "Card", items: [
+    { id: "CREDIT_CARD", label: "Credit Card", icon: "💳" },
+    { id: "DEBIT_CARD", label: "Debit Card", icon: "💳" },
+  ]},
+];
 
 export default function FundWalletPage() {
   const api = useApi();
   const [amount, setAmount] = useState<number>(1000);
-  const [method, setMethod] = useState("GCash");
+  const [method, setMethod] = useState("GCASH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fee = 15;
@@ -22,7 +48,7 @@ export default function FundWalletPage() {
     const data = await api.post("/api/wallet/fund", { amount, paymentMethod: method });
     setLoading(false);
     if (data?.checkoutUrl) window.location.href = data.checkoutUrl;
-    else setError(data?.error || "Failed to create payment");
+    else setError(data?.error || "Failed to create payment. Please try again.");
   };
 
   return (
@@ -40,17 +66,25 @@ export default function FundWalletPage() {
                 </button>
               ))}
             </div>
-            <Input type="number" placeholder="Custom amount" value={amount} onChange={e => setAmount(Number(e.target.value))} min={100} />
+            <Input type="number" placeholder="Custom amount (min ₱100)" value={amount} onChange={e => setAmount(Number(e.target.value))} min={100} max={50000} />
           </div>
 
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Payment Method</p>
-            <div className="space-y-2">
-              {PAYMENT_METHODS.map(m => (
-                <label key={m} className="flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all" style={{ borderColor: method === m ? "#038E80" : "#E5E7EB" }}>
-                  <input type="radio" name="method" value={m} checked={method === m} onChange={() => setMethod(m)} className="accent-[#038E80]" />
-                  <span className="text-sm font-medium">{m}</span>
-                </label>
+            <p className="text-sm font-medium text-gray-700 mb-3">Payment Method</p>
+            <div className="space-y-4">
+              {PAYMENT_CHANNELS.map(group => (
+                <div key={group.group}>
+                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-2">{group.group}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.items.map(m => (
+                      <label key={m.id} className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${method === m.id ? "border-[#038E80] bg-[#038E80]/5" : "border-gray-200"}`}>
+                        <input type="radio" name="method" value={m.id} checked={method === m.id} onChange={() => setMethod(m.id)} className="accent-[#038E80]" />
+                        <span className="text-base">{m.icon}</span>
+                        <span className="text-sm font-medium">{m.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -62,7 +96,10 @@ export default function FundWalletPage() {
           </div>
 
           {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button className="w-full" size="lg" loading={loading} onClick={handleFund}>Continue Payment</Button>
+          <Button className="w-full" size="lg" loading={loading} onClick={handleFund} disabled={amount < 100}>
+            Continue to Payment
+          </Button>
+          <p className="text-xs text-gray-400 text-center">You will be redirected to Xendit's secure payment page</p>
         </CardContent>
       </Card>
     </div>

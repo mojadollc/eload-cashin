@@ -25,7 +25,12 @@ export async function createInvoice(params: CreateInvoiceParams) {
     success_redirect_url: params.successRedirectUrl || `${process.env.APP_URL}/wallet?funded=1`,
     failure_redirect_url: params.failureRedirectUrl || `${process.env.APP_URL}/wallet?failed=1`,
     currency: "PHP",
-    callback_virtual_account_created: false,
+    payment_methods: [
+      "GCASH", "PAYMAYA", "GRABPAY", "SHOPEEPAY",
+      "BDO", "BPI", "UNIONBANK", "METROBANK", "CHINABANK", "RCBC", "SECURITY_BANK",
+      "7ELEVEN", "CEBUANA", "MLHUILLIER", "PALAWAN", "DP_ECPAY_LOAN",
+      "CREDIT_CARD", "DEBIT_CARD",
+    ],
   });
   return data;
 }
