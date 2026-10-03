@@ -16,7 +16,9 @@ export function useApi() {
     });
 
     if (res.status === 401) { logout(); return null; }
-    return res.json();
+    const text = await res.text();
+    if (!text) return null;
+    try { return JSON.parse(text); } catch { return { error: `Server error (${res.status})` }; }
   }, [accessToken, logout]);
 
   return {
