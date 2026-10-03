@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 const TYPES = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
-const STATUSES = ["All", "SUCCESS", "PENDING", "PROCESSING", "FAILED"];
+const STATUSES = ["All", "SUCCESS", "PENDING", "PROCESSING", "FAILED", "CANCELLED"];
 const txIcon: Record<string, string> = { ELOAD: "📱", WALLET_FUND: "💰", CASHOUT: "💸", REFUND: "↩️", REVERSAL: "🔄" };
 
 export default function TransactionsPage() {
