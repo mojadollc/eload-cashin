@@ -14,30 +14,35 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    const fieldErrors = parsed.error.flatten().fieldErrors;
-    const messages = Object.values(fieldErrors).flat().join(". ");
-    return NextResponse.json({ error: messages || "Validation failed" }, { status: 400 });
-  }
+  try {
+    const body = await req.json();
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const messages = Object.values(fieldErrors).flat().join(". ");
+      return NextResponse.json({ error: messages || "Validation failed" }, { status: 400 });
+    }
 
-  const { firstName, lastName, mobile, email, password, referralCode } = parsed.data;
-  const existing = await prisma.user.findFirst({ where: { OR: [{ mobile }, { email }] } });
-  if (existing) return NextResponse.json({ error: "Mobile or email already registered" }, { status: 409 });
+    const { firstName, lastName, mobile, email, password, referralCode } = parsed.data;
+    const existing = await prisma.user.findFirst({ where: { OR: [{ mobile }, { email }] } });
+    if (existing) return NextResponse.json({ error: "Mobile or email already registered" }, { status: 409 });
 
-  const count = await prisma.user.count();
-  const seq = count + 1;
-  const passwordHash = await bcrypt.hash(password, 12);
+    const count = await prisma.user.count();
+    const seq = count + 1;
+    const passwordHash = await bcrypt.hash(password, 12);
 
-  const user = await prisma.$transaction(async (tx: any) => {
-    const u = await tx.user.create({
-      data: { userId: generateUserId(seq), firstName, lastName, mobile, email, passwordHash, referralCode: generateReferralCode(), referredBy: referralCode },
+    const user = await prisma.$transaction(async (tx: any) => {
+      const u = await tx.user.create({
+        data: { userId: generateUserId(seq), firstName, lastName, mobile, email, passwordHash, referralCode: generateReferralCode(), referredBy: referralCode },
+      });
+      await tx.wallet.create({ data: { walletId: generateWalletId(seq), accountNumber: generateAccountNumber(), userId: u.id } });
+      await tx.otpCode.create({ data: { userId: u.id, code: generateOtp(), type: "MOBILE_VERIFY", expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
+      return u;
     });
-    await tx.wallet.create({ data: { walletId: generateWalletId(seq), accountNumber: generateAccountNumber(), userId: u.id } });
-    await tx.otpCode.create({ data: { userId: u.id, code: generateOtp(), type: "MOBILE_VERIFY", expiresAt: new Date(Date.now() + 10 * 60 * 1000) } });
-    return u;
-  });
 
-  return NextResponse.json({ message: "Registration successful. Please verify your mobile.", userId: user.userId });
+    return NextResponse.json({ message: "Registration successful. Please verify your mobile.", userId: user.userId });
+  } catch (err: any) {
+    console.error("Register error:", err);
+    return NextResponse.json({ error: err?.message || "Registration failed" }, { status: 500 });
+  }
 }
