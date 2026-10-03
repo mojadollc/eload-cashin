@@ -31,7 +31,13 @@ export async function initiateEload(userId: string, mobileNumber: string, produc
     return txn;
   });
 
-  const hold = await reserveFunds(wallet.id, totalAmount, transaction.id);
+  let hold;
+  try {
+    hold = await reserveFunds(wallet.id, totalAmount, transaction.id);
+  } catch (err: any) {
+    await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
+    throw new Error(err.message || "Insufficient balance");
+  }
   await eloadQueue.add("process-eload", { transactionId: transaction.id, holdId: hold.id });
   return transaction;
 }

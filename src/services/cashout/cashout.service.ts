@@ -30,7 +30,13 @@ export async function initiateCashout(userId: string, amount: number, channel: s
     return txn;
   });
 
-  const hold = await reserveFunds(wallet.id, totalDeduction, transaction.id);
+  let hold;
+  try {
+    hold = await reserveFunds(wallet.id, totalDeduction, transaction.id);
+  } catch (err: any) {
+    await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
+    throw new Error(err.message || "Insufficient balance");
+  }
   await cashoutQueue.add("process-cashout", { transactionId: transaction.id, holdId: hold.id });
   return transaction;
 }
