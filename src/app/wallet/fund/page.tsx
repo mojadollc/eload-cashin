@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,11 @@ export default function FundWalletPage() {
   const [method, setMethod] = useState("QRPH");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const fee = 15;
+  const [fee, setFee] = useState(0);
+
+  useEffect(() => {
+    api.get(`/api/fees?service=WALLET_FUND&amount=${amount}`).then(d => { if (d?.fee !== undefined) setFee(d.fee); });
+  }, [amount]);
 
   const handleFund = async () => {
     setLoading(true); setError("");

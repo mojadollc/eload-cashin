@@ -37,7 +37,9 @@ export default function EloadPage() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const fee = 2;
+  const [fee, setFee] = useState(0);
+
+  useEffect(() => { api.get("/api/fees?service=ELOAD&amount=100").then(d => { if (d?.fee !== undefined) setFee(d.fee); }); }, []);
 
   useEffect(() => { api.get("/api/wallet").then(setWallet); }, []);
 

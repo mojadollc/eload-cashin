@@ -20,7 +20,9 @@ export default function CashoutPage() {
   const [step, setStep] = useState<"form" | "confirm" | "result">("form");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const fee = 15;
+  const [fee, setFee] = useState(0);
+
+  useEffect(() => { api.get(`/api/fees?service=CASHOUT&amount=${amount}`).then(d => { if (d?.fee !== undefined) setFee(d.fee); }); }, [amount]);
 
   useEffect(() => { api.get("/api/wallet").then(setWallet); }, []);
 
