@@ -34,7 +34,8 @@ function detectChannel(raw: string, merchantInfo: string): string {
   if (upper.includes("SHOPEEPAY") || upper.includes("A000000632010107")) return "SHOPEEPAY";
   if (upper.includes("BPI") || upper.includes("A000000632010103")) return "BPI";
   if (upper.includes("BDO") || upper.includes("A000000632010102")) return "BDO";
-  if (upper.includes("UNIONBANK") || upper.includes("UBP") || upper.includes("A000000632010106")) return "UNIONBANK";
+  if (upper.includes("UNIONBANK") || upper.includes("UBP") || upper.includes("A000000632010106")) return "UBP";
+  if (upper.includes("RCBC") || upper.includes("A000000632010104")) return "RCBC";
   if (upper.includes("METROBANK") || upper.includes("A000000632010104")) return "METROBANK";
   if (upper.includes("LANDBANK") || upper.includes("A000000632010110")) return "LANDBANK";
   if (upper.includes("PNB") || upper.includes("A000000632010111")) return "PNB";
@@ -87,12 +88,12 @@ export function parseQRPh(raw: string): QRPhData | null {
 
 export const CHANNEL_LABELS: Record<string, string> = {
   GCASH: "GCash", PAYMAYA: "Maya", GRABPAY: "GrabPay", SHOPEEPAY: "ShopeePay",
-  BPI: "BPI", BDO: "BDO", UNIONBANK: "UnionBank", METROBANK: "Metrobank",
-  LANDBANK: "Landbank", PNB: "PNB", INSTAPAY: "InstaPay",
+  BPI: "BPI", BDO: "BDO", UBP: "UnionBank", RCBC: "RCBC",
+  METROBANK: "Metrobank", LANDBANK: "Landbank", PNB: "PNB", INSTAPAY: "InstaPay",
 };
 
 export const CHANNEL_COLORS: Record<string, string> = {
   GCASH: "#007DFE", PAYMAYA: "#6366F1", GRABPAY: "#00B14F", SHOPEEPAY: "#EE4D2D",
-  BPI: "#CC0000", BDO: "#003087", UNIONBANK: "#E31837", METROBANK: "#003087",
-  LANDBANK: "#006400", PNB: "#003087", INSTAPAY: "#038E80",
+  BPI: "#CC0000", BDO: "#003087", UBP: "#E31837", RCBC: "#FFD700",
+  METROBANK: "#003087", LANDBANK: "#006400", PNB: "#003087", INSTAPAY: "#038E80",
 };

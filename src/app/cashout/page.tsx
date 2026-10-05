@@ -7,7 +7,7 @@ import { CHANNEL_LABELS, CHANNEL_COLORS, QRPhData } from "@/lib/qrph/parser";
 
 const QRScanner = lazy(() => import("@/components/shared/qr-scanner"));
 
-const CHANNELS = ["GCASH", "PAYMAYA", "BDO", "BPI", "METROBANK", "UNIONBANK", "GRABPAY", "INSTAPAY"];
+const CHANNELS = ["GCASH", "PAYMAYA", "SHOPEEPAY", "GRABPAY", "BPI", "BDO", "UBP", "RCBC"];
 const QUICK_AMOUNTS = [100, 500, 1000, 2000, 5000];
 
 type Step = "form" | "confirm" | "processing" | "result";
@@ -26,6 +26,8 @@ export default function CashoutPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [qrSource, setQrSource] = useState(false); // true = filled from QR
 
+  const [qrUnsupported, setQrUnsupported] = useState("");
+
   useEffect(() => {
     api.get("/api/wallet").then(setWallet);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -39,12 +41,18 @@ export default function CashoutPage() {
 
   const handleQRResult = (data: QRPhData) => {
     setShowScanner(false);
-    setChannel(data.channel);
+    setQrUnsupported("");
     setAccountNumber(data.accountNumber);
     setAccountName(data.accountName || "");
     if (data.amount) setAmount(data.amount);
+    if (CHANNELS.includes(data.channel)) {
+      setChannel(data.channel);
+    } else {
+      // Channel from QR not supported — fill details but let user pick channel
+      setChannel("");
+      setQrUnsupported(CHANNEL_LABELS[data.channel] || data.channel);
+    }
     setQrSource(true);
-    // only set amount from QR if it has one
   };
 
   const handleSend = async () => {
@@ -57,7 +65,7 @@ export default function CashoutPage() {
   };
 
   const reset = () => {
-    setStep("form"); setResult(null); setQrSource(false);
+    setStep("form"); setResult(null); setQrSource(false); setQrUnsupported("");
     setAccountNumber(""); setAccountName(""); setAmount(""); setChannel("");
   };
 
@@ -206,7 +214,7 @@ export default function CashoutPage() {
               <QrCode size={24} className="text-[#038E80]" />
             </div>
             <p className="text-sm font-bold text-[#038E80]">Scan QRPh Code</p>
-            <p className="text-xs text-gray-400">GCash · Maya · BPI · BDO · UnionBank · and more</p>
+            <p className="text-xs text-gray-400">GCash · Maya · ShopeePay · GrabPay · BPI · BDO · UnionBank · RCBC</p>
           </button>
 
           {/* QR filled badge */}
@@ -214,7 +222,14 @@ export default function CashoutPage() {
             <div className="flex items-center gap-2 bg-[#038E80]/10 rounded-xl px-3 py-2">
               <QrCode size={14} className="text-[#038E80]" />
               <span className="text-xs font-semibold text-[#038E80]">Details filled from QR scan</span>
-              <button onClick={() => { setQrSource(false); setAccountNumber(""); setAccountName(""); }} className="ml-auto text-xs text-gray-400 underline">Clear</button>
+              <button onClick={() => { setQrSource(false); setQrUnsupported(""); setAccountNumber(""); setAccountName(""); setChannel(""); }} className="ml-auto text-xs text-gray-400 underline">Clear</button>
+            </div>
+          )}
+
+          {/* Unsupported channel notice */}
+          {qrUnsupported && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-xs text-amber-700">
+              ⚠️ <span className="font-semibold">{qrUnsupported}</span> is not supported. Account details were filled — please select a channel below.
             </div>
           )}
 
@@ -244,8 +259,8 @@ export default function CashoutPage() {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Details</p>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Account / Mobile Number</label>
-                  <input type="tel" placeholder="09XXXXXXXXX or account number" value={accountNumber}
-                    onChange={e => setAccountNumber(e.target.value)}
+                  <input type="tel" inputMode="numeric" placeholder="09XXXXXXXXX or account number" value={accountNumber}
+                    onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ""))}
                     className="w-full text-base font-semibold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
                 </div>
                 <div>
