@@ -30,7 +30,14 @@ export async function POST(req: NextRequest) {
 
   if (!transaction) return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
 
+  // Already successfully processed
   if (transaction.status === TransactionStatus.SUCCESS) {
+    await prisma.providerWebhook.update({ where: { id: webhook.id }, data: { processed: true, processedAt: new Date() } });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Allow recovery of CANCELLED transactions — QRPH can settle after we cancelled
+  if (!([TransactionStatus.PENDING, TransactionStatus.CANCELLED] as string[]).includes(transaction.status)) {
     await prisma.providerWebhook.update({ where: { id: webhook.id }, data: { processed: true, processedAt: new Date() } });
     return NextResponse.json({ ok: true });
   }

@@ -17,26 +17,44 @@ function WalletContent() {
   const [wallet, setWallet] = useState<any>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [filter, setFilter] = useState("All");
-  const [banner, setBanner] = useState<"funded" | "cancelled" | null>(null);
+  const [banner, setBanner] = useState<"funded" | "cancelled" | "pending" | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const funded = searchParams.get("funded");
     const failed = searchParams.get("failed");
     const ref = searchParams.get("ref");
 
-    if (funded === "1") setBanner("funded");
+    const load = () => {
+      api.get("/api/wallet").then(setWallet);
+      api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
+    };
 
-    if (failed === "1" && ref) {
-      api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).then(() => {
-        setBanner("cancelled");
+    load();
+
+    if (funded === "1") { setBanner("funded"); return; }
+
+    if (ref) {
+      // Check Xendit invoice status — covers QRPH delayed settlement
+      setChecking(true);
+      setBanner("pending");
+      api.post("/api/wallet/fund/check", { transactionNumber: ref }).then((res: any) => {
+        setChecking(false);
+        if (res?.status === "paid") {
+          setBanner("funded");
+          load(); // refresh balance
+        } else if (res?.status === "expired" || failed === "1") {
+          setBanner("cancelled");
+        } else {
+          // Still pending on Xendit (QRPH not yet settled)
+          setBanner("pending");
+        }
       });
+      return;
     }
 
-    // Cancel any stale pending fund transactions older than 30 minutes
+    // Cancel stale only on normal wallet visit (no ref)
     api.post("/api/wallet/fund/cancel-stale", {});
-
-    api.get("/api/wallet").then(setWallet);
-    api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -46,8 +64,13 @@ function WalletContent() {
       {banner === "funded" && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 font-medium">✅ Wallet funded successfully!</div>
       )}
+      {banner === "pending" && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700 font-medium flex items-center gap-2">
+          {checking ? "⏳ Checking payment status..." : "🕐 Payment is pending settlement. Your balance will update once confirmed by the payment provider."}
+        </div>
+      )}
       {banner === "cancelled" && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 font-medium">❌ Payment cancelled. Your transaction has been voided.</div>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 font-medium">❌ Payment expired or cancelled.</div>
       )}
 
       <div className="bg-gradient-to-br from-[#038E80] to-[#058174] rounded-2xl p-6 text-white">

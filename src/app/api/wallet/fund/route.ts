@@ -42,7 +42,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   let invoice;
   try {
-    invoice = await createInvoice({ externalId: txnNumber, amount: totalAmount, description: `Wallet Funding - ${txnNumber}`, payerEmail: user.email ?? undefined, failureRedirectUrl: `${process.env.APP_URL}/wallet?failed=1&ref=${txnNumber}` });
+    invoice = await createInvoice({ externalId: txnNumber, amount: totalAmount, description: `Wallet Funding - ${txnNumber}`, payerEmail: user.email ?? undefined, successRedirectUrl: `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}`, failureRedirectUrl: `${process.env.APP_URL}/wallet/fund/return?failed=1&ref=${txnNumber}` });
   } catch (err: any) {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.FAILED } });
     return NextResponse.json({ error: err.message || "Payment provider error" }, { status: 502 });

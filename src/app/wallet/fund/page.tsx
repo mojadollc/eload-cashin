@@ -19,17 +19,6 @@ export default function FundWalletPage() {
   const [fee, setFee] = useState(0);
   const pendingTxn = useRef<string | null>(null);
 
-  // Cancel pending transaction via sendBeacon (works even when tab closes)
-  const cancelPending = (txnNumber: string) => {
-    if (!txnNumber || !accessToken) return;
-    const blob = new Blob(
-      [JSON.stringify({ transactionNumber: txnNumber, accessToken })],
-      { type: "application/json" }
-    );
-    navigator.sendBeacon("/api/wallet/fund/cancel-beacon", blob);
-    sessionStorage.removeItem(PENDING_KEY);
-  };
-
   useEffect(() => {
     api.get(`/api/fees?service=WALLET_FUND&amount=${amount}`).then(d => {
       if (d?.fee !== undefined) setFee(d.fee);
@@ -37,30 +26,9 @@ export default function FundWalletPage() {
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Cancel any leftover pending txn from a previous visit
-    const leftover = sessionStorage.getItem(PENDING_KEY);
-    if (leftover) cancelPending(leftover);
-
-    const handleLeave = () => {
-      if (pendingTxn.current) cancelPending(pendingTxn.current);
-    };
-
-    // visibilitychange catches tab switch, minimize, navigate away
-    const handleVisibility = () => {
-      if (document.visibilityState === "hidden" && pendingTxn.current) {
-        cancelPending(pendingTxn.current);
-      }
-    };
-
-    window.addEventListener("beforeunload", handleLeave);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.removeEventListener("beforeunload", handleLeave);
-      document.removeEventListener("visibilitychange", handleVisibility);
-      // Also cancel if component unmounts (user navigated away via Next.js router)
-      if (pendingTxn.current) cancelPending(pendingTxn.current);
-    };
-  }, [accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Clear any leftover session key — do NOT cancel, Xendit may still settle it
+    sessionStorage.removeItem(PENDING_KEY);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFund = async () => {
     setLoading(true); setError("");

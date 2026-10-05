@@ -1,13 +1,40 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useApi } from "@/components/shared/use-api";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
 
 const TYPES = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
 const STATUSES = ["All", "SUCCESS", "PENDING", "FAILED", "CANCELLED"];
 const txIcon: Record<string, string> = { ELOAD: "📱", WALLET_FUND: "💰", CASHOUT: "💸", REFUND: "↩️", REVERSAL: "🔄" };
+
+const STATUS_STYLES: Record<string, string> = {
+  SUCCESS:    "bg-green-100 text-green-700",
+  PENDING:    "bg-yellow-100 text-yellow-700",
+  PROCESSING: "bg-blue-100 text-blue-700",
+  FAILED:     "bg-red-100 text-red-700",
+  CANCELLED:  "bg-gray-100 text-gray-500",
+  REVERSED:   "bg-orange-100 text-orange-700",
+  REFUNDED:   "bg-purple-100 text-purple-700",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  SUCCESS:    "✅ Success",
+  PENDING:    "⏳ Pending",
+  PROCESSING: "🔄 Processing",
+  FAILED:     "❌ Failed",
+  CANCELLED:  "🚫 Cancelled",
+  REVERSED:   "↩️ Reversed",
+  REFUNDED:   "💜 Refunded",
+};
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_STYLES[status] || "bg-gray-100 text-gray-500"}`}>
+      {STATUS_LABEL[status] || status}
+    </span>
+  );
+}
 
 function SkeletonRow() {
   return (
@@ -182,26 +209,31 @@ export default function TransactionsPage() {
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
-              {transactions.map((txn: any) => (
-                <div key={txn.id} className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl shrink-0">
-                      {txIcon[txn.type] || "💳"}
+              {transactions.map((txn: any) => {
+                const isCredit = txn.type === "WALLET_FUND" || txn.type === "REFUND";
+                const detail = txn.eloadTxn?.network || txn.cashoutTxn?.channel || txn.fundingTxn?.paymentMethod || txn.provider || "";
+                return (
+                  <div key={txn.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl shrink-0">
+                        {txIcon[txn.type] || "💳"}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{txn.type.replace(/_/g, " ")}</p>
+                        {detail && <p className="text-[11px] text-gray-500 font-medium">{detail}</p>}
+                        <p className="text-[11px] text-gray-400 font-mono">{txn.transactionNumber}</p>
+                        <p className="text-[11px] text-gray-400">{formatDate(txn.createdAt)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">{txn.type.replace(/_/g, " ")}</p>
-                      <p className="text-[11px] text-gray-400 font-mono">{txn.transactionNumber}</p>
-                      <p className="text-[11px] text-gray-400">{formatDate(txn.createdAt)}</p>
+                    <div className="text-right space-y-1 shrink-0">
+                      <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-red-500"}`}>
+                        {isCredit ? "+" : "-"}{formatCurrency(txn.grossAmount)}
+                      </p>
+                      <StatusBadge status={txn.status} />
                     </div>
                   </div>
-                  <div className="text-right space-y-1 shrink-0">
-                    <p className={`text-sm font-bold ${txn.type === "WALLET_FUND" || txn.type === "REFUND" ? "text-green-600" : "text-red-500"}`}>
-                      {txn.type === "WALLET_FUND" || txn.type === "REFUND" ? "+" : "-"}{formatCurrency(txn.grossAmount)}
-                    </p>
-                    <Badge status={txn.status} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
