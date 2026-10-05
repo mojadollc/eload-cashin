@@ -42,13 +42,12 @@ export default function CashoutPage() {
   const handleQRResult = (data: QRPhData) => {
     setShowScanner(false);
     setQrUnsupported("");
-    setAccountNumber(data.accountNumber);
-    setAccountName(data.accountName || "");
+    setAccountNumber(data.accountNumber || "");
+    setAccountName(data.accountName || data.merchantName || "");
     if (data.amount) setAmount(data.amount);
     if (CHANNELS.includes(data.channel)) {
       setChannel(data.channel);
     } else {
-      // Channel from QR not supported — fill details but let user pick channel
       setChannel("");
       setQrUnsupported(CHANNEL_LABELS[data.channel] || data.channel);
     }

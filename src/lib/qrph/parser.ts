@@ -1,5 +1,14 @@
-// QRPh / EMVCo QR Code parser
-// Parses TLV (Tag-Length-Value) format used by GCash, Maya, and all BSP-compliant QR codes
+// QRPh / EMVCo TLV parser
+// EMVCo spec: Tag(2) + Length(2) + Value
+// Tags 26-51: Merchant Account Info (each contains sub-TLVs)
+//   Sub-tag 00: GUID / AID
+//   Sub-tag 01: Merchant ID (sometimes account number)
+//   Sub-tag 02: Account number / mobile number
+//   Sub-tag 03: Account number (alternate)
+// Tag 54: Transaction Amount
+// Tag 58: Country Code
+// Tag 59: Merchant Name
+// Tag 60: Merchant City
 
 export interface QRPhData {
   accountName: string;
@@ -11,14 +20,27 @@ export interface QRPhData {
   raw: string;
 }
 
+// Known GUIDs from BSP QRPh spec
+const AID_MAP: Record<string, string> = {
+  "A000000632010109": "GCASH",
+  "A000000632010105": "PAYMAYA",
+  "A000000632010108": "GRABPAY",
+  "A000000632010107": "SHOPEEPAY",
+  "A000000632010103": "BPI",
+  "A000000632010102": "BDO",
+  "A000000632010106": "UBP",
+  "A000000632010104": "RCBC",
+  "A000000632010110": "LANDBANK",
+  "A000000632010111": "PNB",
+};
+
 function parseTLV(data: string): Map<string, string> {
   const map = new Map<string, string>();
   let i = 0;
-  while (i < data.length) {
-    if (i + 4 > data.length) break;
+  while (i + 4 <= data.length) {
     const tag = data.slice(i, i + 2);
     const len = parseInt(data.slice(i + 2, i + 4), 10);
-    if (isNaN(len)) break;
+    if (isNaN(len) || i + 4 + len > data.length) break;
     const value = data.slice(i + 4, i + 4 + len);
     map.set(tag, value);
     i += 4 + len;
@@ -26,26 +48,69 @@ function parseTLV(data: string): Map<string, string> {
   return map;
 }
 
-function detectChannel(raw: string, merchantInfo: string): string {
-  const upper = (raw + merchantInfo).toUpperCase();
-  if (upper.includes("GCASH") || upper.includes("A000000632010109")) return "GCASH";
-  if (upper.includes("MAYA") || upper.includes("PAYMAYA") || upper.includes("A000000632010105")) return "PAYMAYA";
-  if (upper.includes("GRABPAY") || upper.includes("A000000632010108")) return "GRABPAY";
-  if (upper.includes("SHOPEEPAY") || upper.includes("A000000632010107")) return "SHOPEEPAY";
-  if (upper.includes("BPI") || upper.includes("A000000632010103")) return "BPI";
-  if (upper.includes("BDO") || upper.includes("A000000632010102")) return "BDO";
-  if (upper.includes("UNIONBANK") || upper.includes("UBP") || upper.includes("A000000632010106")) return "UBP";
-  if (upper.includes("RCBC") || upper.includes("A000000632010104")) return "RCBC";
-  if (upper.includes("METROBANK") || upper.includes("A000000632010104")) return "METROBANK";
-  if (upper.includes("LANDBANK") || upper.includes("A000000632010110")) return "LANDBANK";
-  if (upper.includes("PNB") || upper.includes("A000000632010111")) return "PNB";
-  return "INSTAPAY";
+function normalizePhone(raw: string): string {
+  const cleaned = raw.replace(/\s+/g, "").trim();
+  // +639XXXXXXXXX → 09XXXXXXXXX
+  if (cleaned.startsWith("+63") && cleaned.length === 13) {
+    return "0" + cleaned.slice(3);
+  }
+  // 639XXXXXXXXX → 09XXXXXXXXX
+  if (cleaned.startsWith("63") && cleaned.length === 12) {
+    return "0" + cleaned.slice(2);
+  }
+  return cleaned;
 }
 
-function extractAccountNumber(merchantInfo: string): string {
+function isPhoneNumber(val: string): boolean {
+  const n = normalizePhone(val);
+  return /^09\d{9}$/.test(n);
+}
+
+function extractFromSubTLV(merchantInfo: string): { channel: string; accountNumber: string } {
   const sub = parseTLV(merchantInfo);
-  const acct = sub.get("02") || sub.get("03") || sub.get("04") || "";
-  return acct.replace(/^\+63/, "0").trim();
+
+  // Detect channel from sub-tag 00 (GUID/AID)
+  const guid = (sub.get("00") || "").toUpperCase();
+  let channel = "";
+  for (const [aid, ch] of Object.entries(AID_MAP)) {
+    if (guid.includes(aid)) { channel = ch; break; }
+  }
+
+  // Try sub-tags 02, 03, 01 for account number in order
+  const candidates = [
+    sub.get("02") || "",
+    sub.get("03") || "",
+    sub.get("01") || "",
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const normalized = normalizePhone(candidate);
+    if (isPhoneNumber(normalized)) {
+      return { channel, accountNumber: normalized };
+    }
+    // Non-phone account number (bank account)
+    if (candidate.length >= 8 && /^\d+$/.test(candidate.trim())) {
+      return { channel, accountNumber: candidate.trim() };
+    }
+  }
+
+  return { channel, accountNumber: "" };
+}
+
+function detectChannelFromRaw(raw: string): string {
+  const upper = raw.toUpperCase();
+  if (upper.includes("GCASH")) return "GCASH";
+  if (upper.includes("PAYMAYA") || upper.includes("MAYA")) return "PAYMAYA";
+  if (upper.includes("GRABPAY")) return "GRABPAY";
+  if (upper.includes("SHOPEEPAY")) return "SHOPEEPAY";
+  if (upper.includes("BPI")) return "BPI";
+  if (upper.includes("BDO")) return "BDO";
+  if (upper.includes("UNIONBANK") || upper.includes("UBP")) return "UBP";
+  if (upper.includes("RCBC")) return "RCBC";
+  if (upper.includes("LANDBANK")) return "LANDBANK";
+  if (upper.includes("PNB")) return "PNB";
+  return "";
 }
 
 export function parseQRPh(raw: string): QRPhData | null {
@@ -53,19 +118,30 @@ export function parseQRPh(raw: string): QRPhData | null {
     const data = raw.trim();
     const tlv = parseTLV(data);
 
-    let merchantInfo = "";
-    let channel = "INSTAPAY";
+    let channel = "";
     let accountNumber = "";
 
+    // Scan merchant account info tags 26–51
     for (let tag = 26; tag <= 51; tag++) {
       const tagStr = tag.toString().padStart(2, "0");
       const val = tlv.get(tagStr);
-      if (val) {
-        merchantInfo = val;
-        channel = detectChannel(data, val);
-        accountNumber = extractAccountNumber(val);
-        if (accountNumber) break;
-      }
+      if (!val) continue;
+
+      const extracted = extractFromSubTLV(val);
+      if (extracted.channel) channel = extracted.channel;
+      if (extracted.accountNumber && !accountNumber) accountNumber = extracted.accountNumber;
+
+      // Once we have both, stop
+      if (channel && accountNumber) break;
+    }
+
+    // Fallback: detect channel from raw string keywords
+    if (!channel) channel = detectChannelFromRaw(data);
+
+    // Fallback: extract phone number from raw string
+    if (!accountNumber) {
+      const match = data.match(/(?:\+63|63|0)(9\d{9})/);
+      if (match) accountNumber = "0" + match[1];
     }
 
     const amountStr = tlv.get("54");
@@ -73,14 +149,17 @@ export function parseQRPh(raw: string): QRPhData | null {
     const merchantName = tlv.get("59")?.trim() || "";
     const city = tlv.get("60")?.trim() || "";
 
-    if (!accountNumber) {
-      const mobileMatch = data.match(/(?:0|\+63)(9\d{9})/);
-      if (mobileMatch) accountNumber = "0" + mobileMatch[1];
-    }
-
     if (!accountNumber && !merchantName) return null;
 
-    return { accountName: merchantName, accountNumber, channel, amount, merchantName, city, raw };
+    return {
+      accountName: merchantName,
+      accountNumber,
+      channel: channel || "GCASH",
+      amount,
+      merchantName,
+      city,
+      raw,
+    };
   } catch {
     return null;
   }
