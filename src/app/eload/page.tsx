@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { useAuth } from "@/components/shared/auth-context";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const MOBILE_NETWORKS = ["GLOBE", "TM", "SMART", "TNT", "DITO", "GOMO", "GOMO PH", "SUN"];
