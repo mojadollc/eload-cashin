@@ -78,13 +78,11 @@ export interface PurchaseLoadParams {
   externalReference: string;
 }
 
-// In-memory SKU cache — refreshed every 5 min or on demand
-let skuCache: { products: EloadProduct[]; at: number } | null = null;
-const SKU_CACHE_TTL = 5 * 60 * 1000;
+import { prisma } from "@/lib/database/prisma";
 
 function mapSkus(skus: any[]): EloadProduct[] {
-  const active = skus.filter(s => s.skuStatus === true);
-  return active
+  return skus
+    .filter(s => s.skuStatus === true)
     .map(s => ({
       promoId: s.promoId,
       productCode: String(s.promoId),
@@ -102,25 +100,75 @@ function mapSkus(skus: any[]): EloadProduct[] {
     .sort((a, b) => a.amount - b.amount);
 }
 
+async function syncToDb(products: EloadProduct[]): Promise<void> {
+  // Mark all existing GBITS products inactive, then upsert active ones
+  await prisma.eloadProduct.updateMany({ where: { provider: "GBITS" }, data: { isActive: false } });
+  await Promise.all(
+    products.map(p =>
+      prisma.eloadProduct.upsert({
+        where: { promoId: p.promoId },
+        update: {
+          network: p.network, service: p.service, name: p.name,
+          amount: p.amount, category: p.category, description: p.description,
+          validity: p.validity, addressType: p.addressType,
+          addressMin: p.addressMin, addressMax: p.addressMax, isActive: true,
+        },
+        create: {
+          provider: "GBITS", promoId: p.promoId, productCode: p.productCode,
+          network: p.network, service: p.service, name: p.name,
+          amount: p.amount, category: p.category, description: p.description,
+          validity: p.validity, addressType: p.addressType,
+          addressMin: p.addressMin, addressMax: p.addressMax, isActive: true,
+        },
+      })
+    )
+  );
+}
+
+function dbToProduct(r: any): EloadProduct {
+  return {
+    promoId: r.promoId ?? 0,
+    productCode: r.productCode,
+    network: r.network,
+    service: r.service || "",
+    name: r.name,
+    amount: Number(r.amount),
+    category: r.category,
+    description: r.description || "",
+    validity: r.validity || "",
+    addressType: r.addressType || "PN",
+    addressMin: r.addressMin || 11,
+    addressMax: r.addressMax || 11,
+  };
+}
+
 export async function getProducts(force = false): Promise<EloadProduct[]> {
-  if (!force && skuCache && Date.now() - skuCache.at < SKU_CACHE_TTL) {
-    return skuCache.products;
+  if (!force) {
+    const rows = await prisma.eloadProduct.findMany({
+      where: { provider: "GBITS", isActive: true },
+      orderBy: { amount: "asc" },
+    });
+    if (rows.length > 0) return rows.map(dbToProduct);
   }
+  // DB empty or forced — fetch from GBits and sync
   const data = await gbitsGet(`/eload/sku/${GBITS_BUSINESS_ID}`);
   if (data.errorCode !== 0) {
-    if (skuCache) return skuCache.products; // return stale on error
+    // On error fall back to whatever is in DB
+    const rows = await prisma.eloadProduct.findMany({
+      where: { provider: "GBITS", isActive: true },
+      orderBy: { amount: "asc" },
+    });
+    if (rows.length > 0) return rows.map(dbToProduct);
     throw new Error(data.message || `GBits errorCode ${data.errorCode}`);
   }
   const products = mapSkus(data.content || []);
-  skuCache = { products, at: Date.now() };
+  await syncToDb(products);
   return products;
 }
 
 export async function refreshSkuCache(): Promise<{ count: number; refreshedAt: string }> {
-  skuCache = null;
   const products = await getProducts(true);
-  const refreshedAt = new Date().toISOString();
-  return { count: products.length, refreshedAt };
+  return { count: products.length, refreshedAt: new Date().toISOString() };
 }
 
 export async function purchaseLoad(params: PurchaseLoadParams) {

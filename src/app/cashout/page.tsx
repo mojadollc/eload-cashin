@@ -15,8 +15,8 @@ type Step = "form" | "confirm" | "processing" | "result";
 export default function CashoutPage() {
   const api = useApi();
   const [step, setStep] = useState<Step>("form");
-  const [amount, setAmount] = useState(500);
-  const [channel, setChannel] = useState("GCASH");
+  const [amount, setAmount] = useState<number | "">("");
+  const [channel, setChannel] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   const [wallet, setWallet] = useState<any>(null);
@@ -31,6 +31,7 @@ export default function CashoutPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    if (!amount) return;
     api.get(`/api/fees?service=CASHOUT&amount=${amount}`).then(d => {
       if (d?.fee !== undefined) setFee(d.fee);
     });
@@ -43,6 +44,7 @@ export default function CashoutPage() {
     setAccountName(data.accountName || "");
     if (data.amount) setAmount(data.amount);
     setQrSource(true);
+    // only set amount from QR if it has one
   };
 
   const handleSend = async () => {
@@ -56,11 +58,11 @@ export default function CashoutPage() {
 
   const reset = () => {
     setStep("form"); setResult(null); setQrSource(false);
-    setAccountNumber(""); setAccountName(""); setAmount(500); setChannel("GCASH");
+    setAccountNumber(""); setAccountName(""); setAmount(""); setChannel("");
   };
 
-  const channelColor = CHANNEL_COLORS[channel] || "#038E80";
-  const channelLabel = CHANNEL_LABELS[channel] || channel;
+  const channelColor = channel ? (CHANNEL_COLORS[channel] || "#038E80") : "#038E80";
+  const channelLabel = channel ? (CHANNEL_LABELS[channel] || channel) : "";
 
   // ── RESULT ───────────────────────────────────────────────────────────────────
   if (step === "result") return (
@@ -86,7 +88,7 @@ export default function CashoutPage() {
           </div>
           <div>
             <h2 className="text-3xl font-extrabold text-green-600">Sent!</h2>
-            <p className="text-5xl font-extrabold text-gray-800 mt-2">{formatCurrency(amount)}</p>
+            <p className="text-5xl font-extrabold text-gray-800 mt-2">{formatCurrency(Number(amount))}</p>
             <p className="text-gray-400 mt-1">{channelLabel} · {accountNumber}</p>
             {accountName && <p className="text-gray-500 font-semibold mt-0.5">{accountName}</p>}
           </div>
@@ -116,7 +118,7 @@ export default function CashoutPage() {
       </div>
       <div>
         <h2 className="text-2xl font-bold text-gray-800">Processing...</h2>
-        <p className="text-gray-400 mt-1">{channelLabel} · {formatCurrency(amount)}</p>
+        <p className="text-gray-400 mt-1">{channelLabel} · {formatCurrency(Number(amount))}</p>
         <p className="text-xs text-gray-300 mt-4">Please wait... do not close this screen</p>
       </div>
     </div>
@@ -143,17 +145,17 @@ export default function CashoutPage() {
               </div>
             )}
             <p className="text-sm opacity-80 mb-1">{channelLabel}</p>
-            <p className="text-5xl font-black">{formatCurrency(amount)}</p>
+            <p className="text-5xl font-black">{formatCurrency(Number(amount))}</p>
           </div>
           <div className="bg-white p-4 space-y-3">
             <div className="flex justify-between"><span className="text-sm text-gray-400">Send To</span><span className="font-bold text-gray-800">{channelLabel}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Account No.</span><span className="font-bold text-gray-800 tracking-widest">{accountNumber}</span></div>
             {accountName && <div className="flex justify-between"><span className="text-sm text-gray-400">Account Name</span><span className="font-bold text-gray-800">{accountName}</span></div>}
-            <div className="flex justify-between"><span className="text-sm text-gray-400">Amount</span><span className="font-bold">{formatCurrency(amount)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Amount</span><span className="font-bold">{formatCurrency(Number(amount))}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
             <div className="flex justify-between border-t pt-3">
               <span className="font-bold">Total Deducted</span>
-              <span className="font-black text-base text-red-500">{formatCurrency(amount + fee)}</span>
+              <span className="font-black text-base text-red-500">{formatCurrency(Number(amount) + fee)}</span>
             </div>
             <div className="flex justify-between text-xs text-gray-400 pt-1">
               <span>Wallet Balance</span><span>{formatCurrency(wallet?.availableBalance || 0)}</span>
@@ -216,7 +218,7 @@ export default function CashoutPage() {
             </div>
           )}
 
-          {/* Channel */}
+          {/* Channel picker — always visible */}
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Send To</p>
             <div className="grid grid-cols-4 gap-2">
@@ -234,56 +236,63 @@ export default function CashoutPage() {
             </div>
           </div>
 
-          {/* Account details */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Details</p>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Account / Mobile Number</label>
-              <input type="tel" placeholder="09XXXXXXXXX or account number" value={accountNumber}
-                onChange={e => setAccountNumber(e.target.value)}
-                className="w-full text-base font-semibold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Account Name</label>
-              <input type="text" placeholder="Full name of recipient" value={accountName}
-                onChange={e => setAccountName(e.target.value)}
-                className="w-full text-base font-semibold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
-            </div>
-          </div>
+          {/* Rest of form — only after channel is picked */}
+          {channel && (
+            <>
+              {/* Account details */}
+              <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Details</p>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Account / Mobile Number</label>
+                  <input type="tel" placeholder="09XXXXXXXXX or account number" value={accountNumber}
+                    onChange={e => setAccountNumber(e.target.value)}
+                    className="w-full text-base font-semibold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Account Name</label>
+                  <input type="text" placeholder="Full name of recipient" value={accountName}
+                    onChange={e => setAccountName(e.target.value)}
+                    className="w-full text-base font-semibold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
+                </div>
+              </div>
 
-          {/* Amount */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</p>
-            <div className="grid grid-cols-5 gap-2">
-              {QUICK_AMOUNTS.map(a => (
-                <button key={a} onClick={() => setAmount(a)}
-                  className={`py-2 rounded-xl text-xs font-bold border-2 transition-all ${amount === a ? "border-[#038E80] bg-[#038E80]/5 text-[#038E80]" : "border-gray-100 text-gray-600"}`}>
-                  ₱{a >= 1000 ? `${a / 1000}k` : a}
-                </button>
-              ))}
-            </div>
-            <input type="number" placeholder="Custom amount" value={amount}
-              onChange={e => setAmount(Number(e.target.value))} min={100}
-              className="w-full text-2xl font-extrabold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
-          </div>
+              {/* Amount */}
+              <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Amount</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {QUICK_AMOUNTS.map(a => (
+                    <button key={a} onClick={() => setAmount(a)}
+                      className={`py-2 rounded-xl text-xs font-bold border-2 transition-all ${amount === a ? "border-[#038E80] bg-[#038E80]/5 text-[#038E80]" : "border-gray-100 text-gray-600"}`}>
+                      ₱{a >= 1000 ? `${a / 1000}k` : a}
+                    </button>
+                  ))}
+                </div>
+                <input type="number" placeholder="Enter amount" value={amount}
+                  onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))} min={100}
+                  className="w-full text-2xl font-extrabold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
+              </div>
 
-          {/* Summary */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold">{formatCurrency(amount)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Service Fee</span><span className="font-semibold">{formatCurrency(fee)}</span></div>
-            <div className="flex justify-between border-t pt-2">
-              <span className="font-bold">Total Deducted</span>
-              <span className="font-black text-red-500">{formatCurrency(amount + fee)}</span>
-            </div>
-          </div>
+              {/* Summary — only when amount is set */}
+              {amount !== "" && amount > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm p-4 space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold">{formatCurrency(amount)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Service Fee</span><span className="font-semibold">{formatCurrency(fee)}</span></div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="font-bold">Total Deducted</span>
+                    <span className="font-black text-red-500">{formatCurrency(amount + fee)}</span>
+                  </div>
+                </div>
+              )}
 
-          <button
-            disabled={!accountNumber || !accountName || amount < 100}
-            onClick={() => setStep("confirm")}
-            className="w-full py-4 rounded-2xl text-white font-extrabold text-lg shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            style={{ backgroundColor: channelColor }}>
-            Send {formatCurrency(amount)} via {channelLabel}
-          </button>
+              <button
+                disabled={!accountNumber || !accountName || !amount || Number(amount) < 100}
+                onClick={() => setStep("confirm")}
+                className="w-full py-4 rounded-2xl text-white font-extrabold text-lg shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                style={{ backgroundColor: channelColor }}>
+                Send{amount ? ` ${formatCurrency(Number(amount))}` : ""}{channelLabel ? ` via ${channelLabel}` : ""}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>
