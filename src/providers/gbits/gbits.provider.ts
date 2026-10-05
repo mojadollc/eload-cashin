@@ -101,23 +101,23 @@ function mapSkus(skus: any[]): EloadProduct[] {
 }
 
 async function syncToDb(products: EloadProduct[]): Promise<void> {
-  // Mark all existing GBITS products inactive, then upsert active ones
   await prisma.eloadProduct.updateMany({ where: { provider: "GBITS" }, data: { isActive: false } });
   await Promise.all(
     products.map(p =>
       prisma.eloadProduct.upsert({
-        where: { promoId: p.promoId },
+        where: { provider_productCode: { provider: "GBITS", productCode: p.productCode } },
         update: {
-          network: p.network, service: p.service, name: p.name,
-          amount: p.amount, category: p.category, description: p.description,
-          validity: p.validity, addressType: p.addressType,
-          addressMin: p.addressMin, addressMax: p.addressMax, isActive: true,
+          promoId: p.promoId, network: p.network, service: p.service ?? null,
+          name: p.name, amount: p.amount, category: p.category,
+          description: p.description ?? null, validity: p.validity ?? null,
+          addressType: p.addressType ?? null, addressMin: p.addressMin,
+          addressMax: p.addressMax, isActive: true,
         },
         create: {
           provider: "GBITS", promoId: p.promoId, productCode: p.productCode,
-          network: p.network, service: p.service, name: p.name,
-          amount: p.amount, category: p.category, description: p.description,
-          validity: p.validity, addressType: p.addressType,
+          network: p.network, service: p.service ?? null, name: p.name,
+          amount: p.amount, category: p.category, description: p.description ?? null,
+          validity: p.validity ?? null, addressType: p.addressType ?? null,
           addressMin: p.addressMin, addressMax: p.addressMax, isActive: true,
         },
       })
