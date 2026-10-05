@@ -1,29 +1,75 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApi } from "@/components/shared/use-api";
+import { useAuth } from "@/components/shared/auth-context";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
+const PENDING_KEY = "pending_fund_txn";
 
 export default function FundWalletPage() {
   const api = useApi();
+  const { accessToken } = useAuth();
   const [amount, setAmount] = useState<number>(1000);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fee, setFee] = useState(0);
+  const pendingTxn = useRef<string | null>(null);
+
+  // Cancel pending transaction via sendBeacon (works even when tab closes)
+  const cancelPending = (txnNumber: string) => {
+    if (!txnNumber || !accessToken) return;
+    const blob = new Blob(
+      [JSON.stringify({ transactionNumber: txnNumber, accessToken })],
+      { type: "application/json" }
+    );
+    navigator.sendBeacon("/api/wallet/fund/cancel-beacon", blob);
+    sessionStorage.removeItem(PENDING_KEY);
+  };
 
   useEffect(() => {
-    api.get(`/api/fees?service=WALLET_FUND&amount=${amount}`).then(d => { if (d?.fee !== undefined) setFee(d.fee); });
-  }, [amount]);
+    api.get(`/api/fees?service=WALLET_FUND&amount=${amount}`).then(d => {
+      if (d?.fee !== undefined) setFee(d.fee);
+    });
+  }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Cancel any leftover pending txn from a previous visit
+    const leftover = sessionStorage.getItem(PENDING_KEY);
+    if (leftover) cancelPending(leftover);
+
+    const handleLeave = () => {
+      if (pendingTxn.current) cancelPending(pendingTxn.current);
+    };
+
+    // visibilitychange catches tab switch, minimize, navigate away
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden" && pendingTxn.current) {
+        cancelPending(pendingTxn.current);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleLeave);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", handleLeave);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      // Also cancel if component unmounts (user navigated away via Next.js router)
+      if (pendingTxn.current) cancelPending(pendingTxn.current);
+    };
+  }, [accessToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFund = async () => {
     setLoading(true); setError("");
     try {
       const data = await api.post("/api/wallet/fund", { amount });
       if (data?.checkoutUrl) {
+        // Store txn so we can cancel if user comes back without paying
+        pendingTxn.current = data.transactionNumber;
+        sessionStorage.setItem(PENDING_KEY, data.transactionNumber);
         window.location.href = data.checkoutUrl;
       } else {
         setError(data?.error || "Failed to create payment. Please try again.");
@@ -63,7 +109,7 @@ export default function FundWalletPage() {
           <Button className="w-full" size="lg" loading={loading} onClick={handleFund} disabled={amount < 100}>
             Continue to Payment
           </Button>
-          <p className="text-xs text-gray-400 text-center">You will be redirected to Xendit's secure payment page</p>
+          <p className="text-xs text-gray-400 text-center">You will be redirected to Xendit&apos;s secure payment page</p>
         </CardContent>
       </Card>
     </div>

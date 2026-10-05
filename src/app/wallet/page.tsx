@@ -32,9 +32,12 @@ function WalletContent() {
       });
     }
 
+    // Cancel any stale pending fund transactions older than 30 minutes
+    api.post("/api/wallet/fund/cancel-stale", {});
+
     api.get("/api/wallet").then(setWallet);
     api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6">
