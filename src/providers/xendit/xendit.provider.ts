@@ -44,15 +44,20 @@ export interface CreateDisbursementParams {
 }
 
 export async function createDisbursement(params: CreateDisbursementParams) {
-  const { data } = await xenditClient.post("/disbursements", {
-    external_id: params.externalId,
-    amount: params.amount,
-    bank_code: params.bankCode,
-    account_holder_name: params.accountHolderName,
-    account_number: params.accountNumber,
-    description: params.description,
-  });
-  return data;
+  try {
+    const { data } = await xenditClient.post("/disbursements", {
+      external_id: params.externalId,
+      amount: params.amount,
+      bank_code: params.bankCode,
+      account_holder_name: params.accountHolderName,
+      account_number: params.accountNumber,
+      description: params.description,
+    });
+    return data;
+  } catch (err: any) {
+    const xenditError = err?.response?.data;
+    throw new Error(xenditError?.message || xenditError?.error_code || "Xendit disbursement failed");
+  }
 }
 
 export async function getDisbursement(disbursementId: string) {
