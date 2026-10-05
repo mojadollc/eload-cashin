@@ -49,7 +49,7 @@ export async function processEload(transactionId: string, holdId: string) {
   await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING } });
 
   try {
-    const result = await purchaseLoad({ promoId: (txn.metadata as any)?.promoId, mobileNumber: txn.eloadTxn.mobileNumber, productCode: txn.eloadTxn.productCode, amount: Number(txn.eloadTxn.loadAmount), externalReference: txn.transactionNumber });
+    const result = await purchaseLoad({ promoId: (txn.metadata as any)?.promoId, mobileNumber: txn.eloadTxn.mobileNumber, amount: Number(txn.eloadTxn.loadAmount), externalReference: txn.transactionNumber });
 
     await prisma.$transaction(async (tx: any) => {
       await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.transaction_id, responsePayload: result, status: result.status, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });
