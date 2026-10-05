@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { X, Flashlight, ZoomIn } from "lucide-react";
+import { X } from "lucide-react";
+import jsQR from "jsqr";
 import { parseQRPh, QRPhData } from "@/lib/qrph/parser";
 
 interface QRScannerProps {
@@ -40,31 +41,25 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
+    });
 
-    // Dynamically import jsQR to keep it client-only
-    import("jsqr").then(({ default: jsQR }) => {
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert", // faster — QRPh codes are always dark on light
-      });
-
-      if (code?.data) {
-        setScanning(false);
-        setHint("QR detected! Parsing...");
-
-        const parsed = parseQRPh(code.data);
-        if (parsed) {
-          stopCamera();
-          onResult(parsed);
-        } else {
-          // Not a QRPh code — keep scanning
-          setHint("Not a valid QRPh code. Try another.");
-          setScanning(true);
-          rafRef.current = requestAnimationFrame(scan);
-        }
+    if (code?.data) {
+      setScanning(false);
+      setHint("QR detected! Parsing...");
+      const parsed = parseQRPh(code.data);
+      if (parsed) {
+        stopCamera();
+        onResult(parsed);
       } else {
+        setHint("Not a valid QRPh code. Try another.");
+        setScanning(true);
         rafRef.current = requestAnimationFrame(scan);
       }
-    });
+    } else {
+      rafRef.current = requestAnimationFrame(scan);
+    }
   }, [onResult, stopCamera]);
 
   useEffect(() => {
