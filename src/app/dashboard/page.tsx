@@ -15,11 +15,18 @@ export default function DashboardPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showBalance, setShowBalance] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/api/wallet").then(setWallet);
-    api.get("/api/transactions?limit=5").then(d => setTransactions(d?.transactions || []));
-  }, []);
+    Promise.all([
+      api.get("/api/wallet"),
+      api.get("/api/transactions?limit=5"),
+    ]).then(([w, d]) => {
+      setWallet(w);
+      setTransactions(d?.transactions || []);
+      setLoading(false);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const quickActions = [
     { href: "/eload", icon: Smartphone, label: "E-Load", color: "bg-blue-50 text-blue-600" },
@@ -29,6 +36,15 @@ export default function DashboardPage() {
   ];
 
   const txIcon: Record<string, string> = { ELOAD: "📱", WALLET_FUND: "💰", CASHOUT: "💸", REFUND: "↩️" };
+
+  if (loading) return (
+    <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6 animate-pulse">
+      <div className="h-8 bg-gray-200 rounded w-48" />
+      <div className="h-40 bg-gray-200 rounded-2xl" />
+      <div className="h-24 bg-gray-200 rounded-2xl" />
+      <div className="h-48 bg-gray-200 rounded-2xl" />
+    </div>
+  );
 
   return (
     <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6">
