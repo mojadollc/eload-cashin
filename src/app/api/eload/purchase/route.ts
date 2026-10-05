@@ -5,10 +5,10 @@ import { z } from "zod";
 import { initiateEload } from "@/services/eload/eload.service";
 import { calculateFee } from "@/services/fees/fee.service";
 import { FeeService } from "@/types/enums";
-import { prisma } from "@/lib/database/prisma";
 
 const schema = z.object({
-  mobileNumber: z.string().regex(/^09\d{9}$/),
+  mobileNumber: z.string().min(10),
+  promoId: z.number().optional(),
   productCode: z.string(),
   network: z.string(),
   loadAmount: z.number().positive(),
@@ -19,12 +19,10 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { mobileNumber, productCode, network, loadAmount } = parsed.data;
-  const product = await prisma.eloadProduct.findFirst({ where: { productCode, isActive: true } });
-  if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+  const { mobileNumber, promoId, productCode, network, loadAmount } = parsed.data;
 
   try {
-    const transaction = await initiateEload(payload.userId, mobileNumber, productCode, network, loadAmount);
+    const transaction = await initiateEload(payload.userId, mobileNumber, productCode, network, loadAmount, promoId);
     const fee = await calculateFee(FeeService.ELOAD, loadAmount);
     return NextResponse.json({ transactionNumber: transaction.transactionNumber, status: transaction.status, fee, total: loadAmount + fee });
   } catch (err: any) {

@@ -6,7 +6,7 @@ import { calculateFee } from "@/services/fees/fee.service";
 import { purchaseLoad } from "@/providers/gbits/gbits.provider";
 import { eloadQueue } from "@/workers/queues";
 
-export async function initiateEload(userId: string, mobileNumber: string, productCode: string, network: string, loadAmount: number) {
+export async function initiateEload(userId: string, mobileNumber: string, productCode: string, network: string, loadAmount: number, promoId?: number) {
   const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
   const fee = await calculateFee(FeeService.ELOAD, loadAmount);
   const totalAmount = loadAmount + fee;
@@ -23,7 +23,7 @@ export async function initiateEload(userId: string, mobileNumber: string, produc
         netAmount: totalAmount,
         provider: Provider.GBITS,
         idempotencyKey: generateIdempotencyKey(),
-        metadata: { mobileNumber, productCode, network },
+        metadata: { mobileNumber, productCode, network, promoId },
       },
     });
     await tx.eloadTransaction.create({ data: { transactionId: txn.id, mobileNumber, network, productCode, loadAmount } });
@@ -49,7 +49,7 @@ export async function processEload(transactionId: string, holdId: string) {
   await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING } });
 
   try {
-    const result = await purchaseLoad({ mobileNumber: txn.eloadTxn.mobileNumber, productCode: txn.eloadTxn.productCode, externalReference: txn.transactionNumber });
+    const result = await purchaseLoad({ promoId: (txn.metadata as any)?.promoId, mobileNumber: txn.eloadTxn.mobileNumber, productCode: txn.eloadTxn.productCode, amount: Number(txn.eloadTxn.loadAmount), externalReference: txn.transactionNumber });
 
     await prisma.$transaction(async (tx: any) => {
       await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.transaction_id, responsePayload: result, status: result.status, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });

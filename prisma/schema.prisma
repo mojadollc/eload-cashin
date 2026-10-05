@@ -234,16 +234,22 @@ model FundingTransaction {
 }
 
 model EloadProduct {
-  id          String   @id @default(cuid())
-  provider    String   @default("GBITS")
-  category    String   @default("Telco")
-  network     String
-  productCode String
-  name        String
-  description String?
-  amount      Decimal  @db.Decimal(10, 2)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  provider     String   @default("GBITS")
+  promoId      Int?     @unique
+  category     String   @default("Telco")
+  network      String
+  service      String?
+  productCode  String
+  name         String
+  description  String?
+  validity     String?
+  addressType  String?
+  addressMin   Int?
+  addressMax   Int?
+  amount       Decimal  @db.Decimal(10, 2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   @@unique([provider, productCode])
   @@index([network, isActive])
