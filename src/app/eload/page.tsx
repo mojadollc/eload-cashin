@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { useAuth } from "@/components/shared/auth-context";
 import { formatCurrency } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, RefreshCw, Loader2, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 const MOBILE_NETWORKS = ["GLOBE", "TM", "SMART", "TNT", "DITO", "GOMO", "GOMO PH", "SUN"];
@@ -155,7 +155,14 @@ export default function EloadPage() {
       {/* Type tabs */}
       <div className="bg-white border-b border-gray-100 px-3 py-3">
         <div className="flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {availableTypes.map(type => {
+          {loading ? (
+            [1,2,3].map(i => (
+              <div key={i} className="shrink-0 flex flex-col items-center gap-1.5">
+                <div className="w-14 h-14 rounded-full bg-gray-200 animate-pulse" style={{ background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
+                <div className="h-2.5 w-10 rounded-full bg-gray-200 animate-pulse" />
+              </div>
+            ))
+          ) : availableTypes.map(type => {
             const active = selectedType === type.id;
             return (
               <button key={type.id} onClick={() => {
@@ -177,7 +184,14 @@ export default function EloadPage() {
       {/* Network chips */}
       <div className="bg-white border-b border-gray-100 px-3 py-3">
         {loading ? (
-          <div className="flex gap-2">{[1,2,3,4].map(i => <div key={i} className="h-14 w-20 rounded-2xl bg-gray-100 animate-pulse shrink-0" />)}</div>
+          <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+            {[1,2,3,4].map(i => (
+              <div key={i} className="shrink-0 flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl border-2 border-gray-100 min-w-[72px]">
+                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+                <div className="h-2.5 w-10 rounded-full bg-gray-200 animate-pulse" />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="flex gap-2 overflow-x-auto pb-0.5" style={{ scrollbarWidth: "none" }}>
             {typeNetworks.map(net => {
@@ -200,12 +214,16 @@ export default function EloadPage() {
       {/* Products */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="bg-white px-3 pt-2.5 pb-1.5">
-          <input type="text" placeholder={`Search ${selectedNetwork} promos...`} value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full h-10 px-4 rounded-2xl bg-gray-100 text-[13px] placeholder:text-gray-400 focus:outline-none" />
+          {loading ? (
+            <div className="h-10 rounded-2xl bg-gray-200 animate-pulse" />
+          ) : (
+            <input type="text" placeholder={`Search ${selectedNetwork} promos...`} value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full h-10 px-4 rounded-2xl bg-gray-100 text-[13px] placeholder:text-gray-400 focus:outline-none" />
+          )}
         </div>
 
-        {categories.length > 0 && (
+        {!loading && categories.length > 0 && (
           <div className="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             {["all", ...categories].map(c => (
               <button key={c} onClick={() => setFilter(c)}
@@ -219,7 +237,23 @@ export default function EloadPage() {
 
         <div className="flex-1 overflow-y-auto p-3">
           {loading ? (
-            <div className="flex items-center justify-center h-40"><Loader2 className="h-8 w-8 animate-spin text-gray-300" /></div>
+            <div className="flex flex-col gap-3">
+              {[1,2,3,4,5,6].map(i => (
+                <div key={i} className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm flex items-center gap-3">
+                  <div className="shrink-0 w-16 h-16 rounded-2xl bg-gray-200 animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 bg-gray-200 rounded-full animate-pulse w-3/4" />
+                    <div className="h-2.5 bg-gray-200 rounded-full animate-pulse w-full" />
+                    <div className="h-2.5 bg-gray-200 rounded-full animate-pulse w-1/2" />
+                    <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse" />
+                  </div>
+                  <div className="shrink-0 space-y-1.5 items-end flex flex-col">
+                    <div className="h-4 w-10 bg-gray-200 rounded-full animate-pulse" />
+                    <div className="h-3 w-4 bg-gray-200 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : filtered.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-10">No products available</p>
           ) : (
