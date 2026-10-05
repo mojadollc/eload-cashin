@@ -14,6 +14,7 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
+  const lastScanRef = useRef<number>(0);
   const [error, setError] = useState("");
   const [torch, setTorch] = useState(false);
   const [scanning, setScanning] = useState(true);
@@ -33,6 +34,14 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
       return;
     }
 
+    // Throttle to ~15fps on mobile to avoid overloading
+    const now = Date.now();
+    if (now - lastScanRef.current < 66) {
+      rafRef.current = requestAnimationFrame(scan);
+      return;
+    }
+    lastScanRef.current = now;
+
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
@@ -42,7 +51,7 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
+      inversionAttempts: "attemptBoth",
     });
 
     if (code?.data) {
@@ -67,15 +76,26 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
 
     const startCamera = async () => {
       try {
-        // Request back camera with high resolution for fast QR detection
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 },
-          },
-        });
+        // Try exact environment camera first, fall back to any video
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { exact: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        } catch {
+          // Fallback: ideal instead of exact (works on desktop + some mobiles)
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          });
+        }
 
         if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
 
@@ -85,24 +105,40 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
 
         video.srcObject = stream;
         video.setAttribute("playsinline", "true");
-        await video.play();
+        video.setAttribute("autoplay", "true");
+        video.muted = true;
 
-        // Apply continuous autofocus if supported
-        const track = stream.getVideoTracks()[0];
-        const capabilities = track.getCapabilities() as any;
-        if (capabilities?.focusMode?.includes("continuous")) {
-          await track.applyConstraints({ advanced: [{ focusMode: "continuous" } as any] });
-        }
+        // Use onloadedmetadata for mobile compatibility instead of awaiting play()
+        await new Promise<void>((resolve, reject) => {
+          video.onloadedmetadata = () => {
+            video.play().then(resolve).catch(reject);
+          };
+          // Timeout fallback
+          setTimeout(resolve, 3000);
+        });
+
+        if (!mounted) return;
+
+        // Apply continuous autofocus safely
+        try {
+          const track = stream.getVideoTracks()[0];
+          const capabilities = track.getCapabilities?.() as any;
+          if (capabilities?.focusMode?.includes("continuous")) {
+            await track.applyConstraints({ advanced: [{ focusMode: "continuous" } as any] });
+          }
+        } catch { /* autofocus not supported, ignore */ }
 
         rafRef.current = requestAnimationFrame(scan);
       } catch (err: any) {
         if (!mounted) return;
         if (err.name === "NotAllowedError") {
-          setError("Camera permission denied. Please allow camera access.");
+          setError("Camera permission denied. Please allow camera access and reload.");
         } else if (err.name === "NotFoundError") {
           setError("No camera found on this device.");
+        } else if (err.name === "OverconstrainedError") {
+          setError("Could not access back camera. Try on a mobile device.");
         } else {
-          setError("Could not start camera: " + err.message);
+          setError("Could not start camera: " + (err.message || err.name));
         }
       }
     };
@@ -120,9 +156,7 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
     try {
       await track.applyConstraints({ advanced: [{ torch: !torch } as any] });
       setTorch(t => !t);
-    } catch {
-      // Torch not supported
-    }
+    } catch { /* torch not supported */ }
   };
 
   return (
@@ -144,21 +178,16 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
 
       {/* Camera view */}
       <div className="flex-1 relative overflow-hidden">
-        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" muted playsInline />
+        <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay />
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Overlay with cutout */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative w-64 h-64">
-            {/* Dark overlay around the scan area */}
             <div className="absolute inset-0 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" />
-
-            {/* Animated scan line */}
             {scanning && (
               <div className="absolute inset-x-0 h-0.5 bg-[#038E80] opacity-80 animate-scan-line" />
             )}
-
-            {/* Corner brackets */}
             {[
               "top-0 left-0 border-t-4 border-l-4 rounded-tl-xl",
               "top-0 right-0 border-t-4 border-r-4 rounded-tr-xl",
@@ -170,7 +199,7 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
           </div>
         </div>
 
-        {/* Hint text */}
+        {/* Hint */}
         <div className="absolute bottom-8 left-0 right-0 flex justify-center">
           <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full">
             <p className="text-white text-sm font-medium">{hint}</p>
@@ -192,7 +221,6 @@ export default function QRScanner({ onResult, onClose }: QRScannerProps) {
         )}
       </div>
 
-      {/* Bottom hint */}
       <div className="bg-black/80 px-4 py-4 text-center">
         <p className="text-white/50 text-xs">Works with GCash, Maya, BPI, BDO, UnionBank and all QRPh-compliant codes</p>
       </div>
