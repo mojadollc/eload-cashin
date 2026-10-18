@@ -4,7 +4,15 @@ import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { Users, TrendingUp, DollarSign, AlertCircle, Clock, Smartphone, ArrowDownCircle, Wallet, ArrowRightLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Users, TrendingUp, DollarSign, AlertCircle, Clock,
+  Smartphone, ArrowDownCircle, Wallet, ArrowRightLeft,
+  ChevronLeft, ChevronRight,
+} from "lucide-react";
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
 
 const RANGES = ["today", "week", "month", "year"];
 
@@ -39,6 +47,17 @@ function SkeletonServiceCard() {
   );
 }
 
+function SkeletonChart() {
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4">
+        <div className="h-4 w-40 bg-gray-200 rounded-full animate-pulse mb-4" />
+        <div className="h-56 bg-gray-100 rounded-xl animate-pulse" />
+      </CardContent>
+    </Card>
+  );
+}
+
 function SkeletonTxnRow() {
   return (
     <tr>
@@ -50,6 +69,27 @@ function SkeletonTxnRow() {
     </tr>
   );
 }
+
+const currencyFormatter = (v: number) =>
+  v >= 1000 ? `₱${(v / 1000).toFixed(1)}k` : `₱${v}`;
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl shadow-lg p-3 text-xs">
+      <p className="font-semibold text-gray-600 mb-1">{label}</p>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full inline-block" style={{ background: p.color }} />
+          <span className="text-gray-500">{p.name}:</span>
+          <span className="font-bold" style={{ color: p.color }}>
+            {p.dataKey === "count" ? p.value.toLocaleString() : formatCurrency(p.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default function AdminDashboard() {
   const api = useApi();
@@ -79,61 +119,27 @@ export default function AdminDashboard() {
   }, [range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpis = stats ? [
-    { label: "Total Users",    value: stats.totalUsers?.toLocaleString(),        icon: Users,           color: "text-blue-600 bg-blue-50" },
-    { label: "Active Users",   value: stats.activeUsers?.toLocaleString(),       icon: Users,           color: "text-green-600 bg-green-50" },
-    { label: "Total Volume",   value: formatCurrency(stats.totalVolume || 0),    icon: TrendingUp,      color: "text-purple-600 bg-purple-50" },
-    { label: "Net Revenue",    value: formatCurrency(stats.totalRevenue || 0),   icon: DollarSign,      color: "text-[#038E80] bg-[#038E80]/10" },
-    { label: "Pending",        value: stats.pendingTxns?.toLocaleString(),       icon: Clock,           color: "text-yellow-600 bg-yellow-50" },
-    { label: "Failed",         value: stats.failedTxns?.toLocaleString(),        icon: AlertCircle,     color: "text-red-600 bg-red-50" },
+    { label: "Total Users",  value: stats.totalUsers?.toLocaleString(),      icon: Users,          color: "text-blue-600 bg-blue-50" },
+    { label: "Active Users", value: stats.activeUsers?.toLocaleString(),     icon: Users,          color: "text-green-600 bg-green-50" },
+    { label: "Total Volume", value: formatCurrency(stats.totalVolume || 0),  icon: TrendingUp,     color: "text-purple-600 bg-purple-50" },
+    { label: "Net Revenue",  value: formatCurrency(stats.totalRevenue || 0), icon: DollarSign,     color: "text-[#038E80] bg-[#038E80]/10" },
+    { label: "Pending",      value: stats.pendingTxns?.toLocaleString(),     icon: Clock,          color: "text-yellow-600 bg-yellow-50" },
+    { label: "Failed",       value: stats.failedTxns?.toLocaleString(),      icon: AlertCircle,    color: "text-red-600 bg-red-50" },
   ] : [];
 
   const serviceCards = stats ? [
-    {
-      label: "Wallet Funding",
-      icon: Wallet,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      count: stats.walletFundCount ?? 0,
-      volume: stats.walletFundVolume ?? 0,
-      revenue: stats.walletFundFee ?? 0,
-      providerCost: 0,
-    },
-    {
-      label: "E-Load",
-      icon: Smartphone,
-      color: "text-green-600",
-      bg: "bg-green-50",
-      count: stats.eloadCount ?? 0,
-      volume: stats.eloadVolume ?? 0,
-      revenue: stats.eloadFee ?? 0,
-      providerCost: 0,
-    },
-    {
-      label: "Cash Out",
-      icon: ArrowDownCircle,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      count: stats.cashoutCount ?? 0,
-      volume: stats.cashoutVolume ?? 0,
-      revenue: stats.cashoutRevenue ?? 0,
-      providerCost: stats.cashoutCount ? stats.cashoutCount * 10 : 0,
-      grossFee: stats.cashoutFee ?? 0,
-    },
-    {
-      label: "Transfers",
-      icon: ArrowRightLeft,
-      color: "text-teal-600",
-      bg: "bg-teal-50",
-      count: stats.transferCount ?? 0,
-      volume: 0,
-      revenue: 0,
-      providerCost: 0,
-      free: true,
-    },
+    { label: "Wallet Funding", icon: Wallet,          color: "text-blue-600",   bg: "bg-blue-50",   count: stats.walletFundCount ?? 0, volume: stats.walletFundVolume ?? 0, revenue: stats.walletFundFee ?? 0,    providerCost: 0 },
+    { label: "E-Load",         icon: Smartphone,      color: "text-green-600",  bg: "bg-green-50",  count: stats.eloadCount ?? 0,      volume: stats.eloadVolume ?? 0,      revenue: stats.eloadFee ?? 0,         providerCost: 0 },
+    { label: "Cash Out",       icon: ArrowDownCircle, color: "text-purple-600", bg: "bg-purple-50", count: stats.cashoutCount ?? 0,    volume: stats.cashoutVolume ?? 0,    revenue: stats.cashoutRevenue ?? 0,   providerCost: stats.cashoutCount ? stats.cashoutCount * 10 : 0, grossFee: stats.cashoutFee ?? 0 },
+    { label: "Transfers",      icon: ArrowRightLeft,  color: "text-teal-600",   bg: "bg-teal-50",   count: stats.transferCount ?? 0,   volume: 0,                           revenue: 0,                           providerCost: 0, free: true },
   ] : [];
+
+  // Filter chart data to only show buckets up to now (for today/month)
+  const chartData: any[] = stats?.chartData ?? [];
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -141,7 +147,10 @@ export default function AdminDashboard() {
         </div>
         <div className="flex gap-2">
           {RANGES.map(r => (
-            <button key={r} onClick={() => setRange(r)} className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${range === r ? "bg-[#038E80] text-white" : "bg-white text-gray-600 border"}`}>{r}</button>
+            <button key={r} onClick={() => setRange(r)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${range === r ? "bg-[#038E80] text-white" : "bg-white text-gray-600 border"}`}>
+              {r}
+            </button>
           ))}
         </div>
       </div>
@@ -162,6 +171,60 @@ export default function AdminDashboard() {
             </Card>
           ))
         }
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {statsLoading ? (
+          <>
+            <SkeletonChart />
+            <SkeletonChart />
+          </>
+        ) : (
+          <>
+            {/* Revenue Trend */}
+            <Card>
+              <CardContent className="pt-4 pb-2">
+                <p className="text-sm font-semibold text-gray-700 mb-4">Revenue Trend</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#038E80" stopOpacity={0.18} />
+                        <stop offset="95%" stopColor="#038E80" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false}
+                      interval={range === "today" ? 3 : range === "month" ? 4 : 0} />
+                    <YAxis tickFormatter={currencyFormatter} tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false} width={52} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#038E80" strokeWidth={2} fill="url(#revGrad)" dot={false} activeDot={{ r: 4 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Transaction Volume */}
+            <Card>
+              <CardContent className="pt-4 pb-2">
+                <p className="text-sm font-semibold text-gray-700 mb-4">Transaction Volume</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barSize={range === "today" ? 8 : range === "month" ? 6 : 18}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false}
+                      interval={range === "today" ? 3 : range === "month" ? 4 : 0} />
+                    <YAxis tickFormatter={currencyFormatter} tick={{ fontSize: 10, fill: "#9ca3af" }} tickLine={false} axisLine={false} width={52} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                    <Bar dataKey="volume" name="Volume" fill="#6366f1" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="count"  name="Txn Count" fill="#f59e0b" radius={[3, 3, 0, 0]} yAxisId={0} hide />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Service Breakdown */}

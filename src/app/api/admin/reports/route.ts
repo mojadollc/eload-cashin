@@ -15,6 +15,55 @@ export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) =>
     range === "month" ? new Date(now.getFullYear(), now.getMonth(), 1) :
     new Date(now.getFullYear(), 0, 1);
 
+  // Build chart buckets
+  const buckets: { label: string; from: Date; to: Date }[] = [];
+  if (range === "today") {
+    for (let h = 0; h < 24; h++) {
+      const f = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h);
+      const t = new Date(f.getTime() + 3600000);
+      buckets.push({ label: `${String(h).padStart(2, "0")}:00`, from: f, to: t });
+    }
+  } else if (range === "week") {
+    for (let d = 6; d >= 0; d--) {
+      const f = new Date(now.getTime() - d * 86400000);
+      f.setHours(0, 0, 0, 0);
+      const t = new Date(f.getTime() + 86400000);
+      buckets.push({ label: f.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), from: f, to: t });
+    }
+  } else if (range === "month") {
+    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const f = new Date(now.getFullYear(), now.getMonth(), d);
+      const t = new Date(now.getFullYear(), now.getMonth(), d + 1);
+      buckets.push({ label: `${d}`, from: f, to: t });
+    }
+  } else {
+    for (let m = 0; m < 12; m++) {
+      const f = new Date(now.getFullYear(), m, 1);
+      const t = new Date(now.getFullYear(), m + 1, 1);
+      buckets.push({ label: f.toLocaleDateString("en-PH", { month: "short" }), from: f, to: t });
+    }
+  }
+
+  // Fetch all SUCCESS transactions in range with type + amounts
+  const txnsForChart = await prisma.transaction.findMany({
+    where: { status: "SUCCESS", createdAt: { gte: from } },
+    select: { type: true, grossAmount: true, feeAmount: true, createdAt: true },
+  });
+
+  const chartData = buckets.map(({ label, from: bf, to: bt }) => {
+    const slice = txnsForChart.filter(t => t.createdAt >= bf && t.createdAt < bt);
+    const fundFee    = slice.filter(t => t.type === "WALLET_FUND").reduce((s, t) => s + Number(t.feeAmount), 0);
+    const eloadFee   = slice.filter(t => t.type === "ELOAD").reduce((s, t) => s + Number(t.feeAmount), 0);
+    const cashoutTxns = slice.filter(t => t.type === "CASHOUT");
+    const cashoutGrossFee = cashoutTxns.reduce((s, t) => s + Number(t.feeAmount), 0);
+    const cashoutNet = Math.max(0, cashoutGrossFee - cashoutTxns.length * PAYMONGO_DISBURSEMENT_FEE);
+    const revenue = fundFee + eloadFee + cashoutNet;
+    const volume  = slice.reduce((s, t) => s + Number(t.grossAmount), 0);
+    const count   = slice.length;
+    return { label, revenue, volume, count };
+  });
+
   const [
     totalUsers,
     activeUsers,
@@ -89,5 +138,6 @@ export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) =>
     cashoutVolume, cashoutFee, cashoutRevenue, cashoutCount,
     transferCount,
     revenueByType,
+    chartData,
   });
 }, ADMIN_ROLES);
