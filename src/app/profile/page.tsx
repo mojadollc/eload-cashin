@@ -3,7 +3,7 @@ import { useAuth } from "@/components/shared/auth-context";
 import { useApi } from "@/components/shared/use-api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { User, Phone, Mail, LogOut, ChevronRight, ChevronLeft, Shield, Bell, FileText, X, Calendar, Wallet, Copy, Check, Smartphone, SendHorizonal, RotateCcw, RefreshCw, Receipt } from "lucide-react";
+import { User, Phone, Mail, LogOut, ChevronRight, ChevronLeft, Shield, Bell, FileText, X, Calendar, Wallet, Copy, Check, Eye, EyeOff, Smartphone, SendHorizonal, RotateCcw, RefreshCw, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -94,43 +94,42 @@ export default function ProfilePage() {
       </div>
 
       <div className="px-4 -mt-14 space-y-4 pb-8">
-        {/* Virtual Card */}
+        {/* Wallet Card — uniform style */}
         {wallet && (
-          <div className="relative rounded-2xl overflow-hidden shadow-lg" style={{ background: "linear-gradient(135deg, #038E80 0%, #025f56 60%, #017a6e 100%)" }}>
-            <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -translate-y-10 translate-x-10" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-white/5 translate-y-10 -translate-x-10" />
-            <div className="relative p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wallet size={18} className="text-white/80" />
-                  <span className="text-white font-bold text-sm">CashIn Tap</span>
-                </div>
-                <span className="text-white/60 text-xs font-mono">VIRTUAL</span>
-              </div>
-              <div>
-                <p className="text-white/60 text-[10px] uppercase tracking-widest mb-1">Account Number</p>
-                <div className="flex items-center gap-2">
-                  <p className="text-white font-mono text-lg font-bold tracking-widest">
-                    {showCardNumber ? wallet.accountNumber : "••••••••••"}
-                  </p>
-                  <button onClick={() => setShowCardNumber(v => !v)} className="text-white/60 hover:text-white">
-                    {showCardNumber
-                      ? <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    }
-                  </button>
-                  {showCardNumber && <CopyButton text={wallet.accountNumber} />}
-                </div>
-              </div>
-              <div className="flex items-end justify-between">
+          <div className="relative rounded-3xl overflow-hidden text-white"
+            style={{ background: "linear-gradient(135deg, #038E80 0%, #026b62 50%, #025a52 100%)" }}>
+            <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+            <div className="absolute -bottom-10 -left-6 w-36 h-36 rounded-full bg-white/5" />
+            <div className="absolute top-1/2 right-12 w-20 h-20 rounded-full bg-white/5" />
+            <div className="relative p-6">
+              <div className="flex items-start justify-between mb-5">
                 <div>
-                  <p className="text-white/60 text-[10px] uppercase tracking-widest mb-0.5">Balance</p>
-                  <p className="text-white font-bold text-xl">{formatCurrency(wallet.availableBalance || 0)}</p>
+                  <p className="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Available Balance</p>
+                  <p className="text-3xl font-bold tracking-tight">{formatCurrency(wallet.availableBalance || 0)}</p>
+                  {wallet.pendingBalance > 0 && (
+                    <p className="text-white/50 text-xs mt-1">+ {formatCurrency(wallet.pendingBalance)} pending</p>
+                  )}
                 </div>
-                <div className="text-right">
-                  <p className="text-white/60 text-[10px] uppercase tracking-widest mb-0.5">Status</p>
-                  <p className="text-white font-semibold text-xs">{wallet.status}</p>
+                <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                  <Wallet size={18} className="text-white" />
                 </div>
+              </div>
+              <div className="flex items-center gap-1.5 mb-4">
+                <p className="text-white/50 text-[11px] font-mono tracking-[0.2em]">
+                  {showCardNumber
+                    ? wallet.accountNumber.replace(/(.{4})/g, "$1 ").trim()
+                    : "•••• •••• ••"}
+                </p>
+                <button onClick={() => setShowCardNumber(v => !v)}
+                  className="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+                  {showCardNumber
+                    ? <EyeOff size={13} />
+                    : <Eye size={13} />}
+                </button>
+                {showCardNumber && <CopyButton text={wallet.accountNumber} />}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/50 text-xs font-semibold uppercase tracking-widest">CashIn Tap · {wallet.status}</span>
               </div>
             </div>
           </div>

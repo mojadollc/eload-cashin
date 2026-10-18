@@ -2,7 +2,7 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { formatCurrency } from "@/lib/utils";
-import { QrCode, ChevronLeft, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { QrCode, ChevronLeft, CheckCircle, XCircle, Loader2, ArrowLeftRight } from "lucide-react";
 import { CHANNEL_LABELS, CHANNEL_COLORS, QRPhData } from "@/lib/qrph/parser";
 
 const QRScanner = lazy(() => import("@/components/shared/qr-scanner"));
@@ -207,24 +207,29 @@ export default function CashoutPage() {
         </div>
 
         <div className="px-4 -mt-10 pb-8 space-y-4">
-          {/* CashIn Tap Transfer */}
+          {/* CashIn Tap Transfer — solid row */}
           <a href="/transfer"
-            className="w-full bg-white rounded-2xl shadow-sm border-2 border-dashed border-[#038E80]/30 py-5 flex flex-col items-center gap-2 active:scale-[0.98] transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-[#038E80]/10 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#038E80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            className="w-full bg-white rounded-2xl shadow-sm px-4 py-4 flex items-center gap-4 active:scale-[0.98] transition-all border border-gray-100">
+            <div className="w-11 h-11 rounded-2xl bg-[#038E80]/10 flex items-center justify-center shrink-0">
+              <ArrowLeftRight size={20} className="text-[#038E80]" strokeWidth={2} />
             </div>
-            <p className="text-sm font-bold text-[#038E80]">CashIn Tap Wallet</p>
-            <p className="text-xs text-gray-400">Free · Instant · No fees</p>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-gray-800">CashIn Tap Wallet</p>
+              <p className="text-xs text-gray-400">Free · Instant · No fees</p>
+            </div>
+            <span className="text-xs font-bold text-[#038E80] bg-[#038E80]/10 px-2.5 py-1 rounded-full">FREE</span>
           </a>
 
-          {/* QR Scan button */}
+          {/* QR Scan button — solid row */}
           <button onClick={() => setShowScanner(true)}
-            className="w-full bg-white rounded-2xl shadow-sm border-2 border-dashed border-[#038E80]/30 py-5 flex flex-col items-center gap-2 active:scale-[0.98] transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-[#038E80]/10 flex items-center justify-center">
-              <QrCode size={24} className="text-[#038E80]" />
+            className="w-full bg-white rounded-2xl shadow-sm px-4 py-4 flex items-center gap-4 active:scale-[0.98] transition-all border border-gray-100">
+            <div className="w-11 h-11 rounded-2xl bg-[#038E80]/10 flex items-center justify-center shrink-0">
+              <QrCode size={20} className="text-[#038E80]" />
             </div>
-            <p className="text-sm font-bold text-[#038E80]">Scan QRPh Code</p>
-            <p className="text-xs text-gray-400">GCash · Maya · ShopeePay · GrabPay · BPI · BDO · UnionBank · RCBC</p>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-gray-800">Scan QRPh Code</p>
+              <p className="text-xs text-gray-400">GCash · Maya · ShopeePay · GrabPay · BPI · BDO · More</p>
+            </div>
           </button>
 
           {/* QR filled badge */}

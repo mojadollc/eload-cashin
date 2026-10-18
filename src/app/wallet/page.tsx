@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Plus, ArrowUpRight, ArrowDownLeft, Copy, Check, Smartphone, SendHorizonal, Wallet, RotateCcw, Receipt } from "lucide-react";
+import { Plus, ArrowUpRight, ArrowDownLeft, Copy, Check, Eye, EyeOff, Smartphone, SendHorizonal, Wallet, RotateCcw, Receipt } from "lucide-react";
 
 const TX_ICON: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   ELOAD:       { icon: Smartphone,    color: "text-blue-600",   bg: "bg-blue-50" },
@@ -34,6 +34,7 @@ function WalletContent() {
   const [wallet, setWallet] = useState<any>(null);
   const [entries, setEntries] = useState<any[]>([]);
   const [filter, setFilter] = useState("All");
+  const [showBalance, setShowBalance] = useState(true);
   const [banner, setBanner] = useState<"funded" | "cancelled" | "pending" | null>(null);
   const [checking, setChecking] = useState(false);
 
@@ -90,20 +91,45 @@ function WalletContent() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 font-medium">❌ Payment expired or cancelled.</div>
       )}
 
-      <div className="bg-gradient-to-br from-[#038E80] to-[#058174] rounded-2xl p-6 text-white">
-        <p className="text-white/70 text-sm">Available Balance</p>
-        <p className="text-4xl font-bold mt-1">{formatCurrency(wallet?.availableBalance || 0)}</p>
-        {wallet?.pendingBalance > 0 && <p className="text-white/60 text-sm mt-1">Pending: {formatCurrency(wallet.pendingBalance)}</p>}
-        <div className="mt-4 flex gap-2">
-          <Link href="/wallet/fund">
-            <Button size="sm" className="bg-white/20 hover:bg-white/30 border-0 text-white">
-              <Plus size={16} className="mr-1" /> Fund Wallet
-            </Button>
+      {/* Wallet Card — uniform style */}
+      <div className="relative rounded-3xl overflow-hidden text-white"
+        style={{ background: "linear-gradient(135deg, #038E80 0%, #026b62 50%, #025a52 100%)" }}>
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+        <div className="absolute -bottom-10 -left-6 w-36 h-36 rounded-full bg-white/5" />
+        <div className="absolute top-1/2 right-12 w-20 h-20 rounded-full bg-white/5" />
+        <div className="relative p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <p className="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Available Balance</p>
+              <div className="flex items-center gap-2.5">
+                <span className="text-3xl font-bold tracking-tight">
+                  {showBalance ? formatCurrency(wallet?.availableBalance || 0) : "₱ ••••••"}
+                </span>
+                <button onClick={() => setShowBalance(b => !b)}
+                  className="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+                  {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {wallet?.pendingBalance > 0 && (
+                <p className="text-white/50 text-xs mt-1">+ {formatCurrency(wallet.pendingBalance)} pending</p>
+              )}
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
+              <Wallet size={18} className="text-white" />
+            </div>
+          </div>
+          {wallet?.accountNumber && (
+            <div className="flex items-center gap-1.5 mb-5">
+              <p className="text-white/50 text-[11px] font-mono tracking-[0.2em]">
+                {wallet.accountNumber.replace(/(.{4})/g, "$1 ").trim()}
+              </p>
+              <CopyButton text={wallet.accountNumber} />
+            </div>
+          )}
+          <Link href="/wallet/fund"
+            className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 transition-all text-white text-sm font-semibold px-4 py-2 rounded-xl">
+            <Plus size={15} /> Fund Wallet
           </Link>
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-white/50 text-xs">Account No: {wallet?.accountNumber}</span>
-          {wallet?.accountNumber && <CopyButton text={wallet.accountNumber} />}
         </div>
       </div>
 
