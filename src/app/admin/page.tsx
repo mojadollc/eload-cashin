@@ -4,19 +4,78 @@ import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { Users, TrendingUp, DollarSign, AlertCircle, Clock, Smartphone, ArrowDownCircle, Wallet, ArrowRightLeft } from "lucide-react";
+import { Users, TrendingUp, DollarSign, AlertCircle, Clock, Smartphone, ArrowDownCircle, Wallet, ArrowRightLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 const RANGES = ["today", "week", "month", "year"];
+
+function SkeletonKpi() {
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4">
+        <div className="w-9 h-9 rounded-xl bg-gray-200 animate-pulse mb-3" />
+        <div className="h-7 w-20 bg-gray-200 rounded-full animate-pulse" />
+        <div className="h-3 w-16 bg-gray-200 rounded-full animate-pulse mt-2" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function SkeletonServiceCard() {
+  return (
+    <Card>
+      <CardContent className="pt-4 pb-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-gray-200 animate-pulse" />
+          <div className="h-4 w-24 bg-gray-200 rounded-full animate-pulse" />
+        </div>
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex justify-between">
+            <div className="h-3 w-20 bg-gray-200 rounded-full animate-pulse" />
+            <div className="h-3 w-16 bg-gray-200 rounded-full animate-pulse" />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SkeletonTxnRow() {
+  return (
+    <tr>
+      {[120, 100, 70, 70, 60, 60].map((w, i) => (
+        <td key={i} className="py-3 pr-4">
+          <div className="h-3 bg-gray-200 rounded-full animate-pulse" style={{ width: `${w}px` }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
 
 export default function AdminDashboard() {
   const api = useApi();
   const [stats, setStats] = useState<any>(null);
   const [range, setRange] = useState("today");
   const [recentTxns, setRecentTxns] = useState<any[]>([]);
+  const [txnPage, setTxnPage] = useState(1);
+  const [txnPages, setTxnPages] = useState(1);
+  const [txnTotal, setTxnTotal] = useState(0);
+  const [txnLoading, setTxnLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const loadTxns = async (p = 1) => {
+    setTxnLoading(true);
+    const d = await api.get(`/api/admin/transactions?limit=10&page=${p}`);
+    setRecentTxns(d?.transactions || []);
+    setTxnPages(d?.pages || 1);
+    setTxnTotal(d?.total || 0);
+    setTxnPage(p);
+    setTxnLoading(false);
+  };
 
   useEffect(() => {
-    api.get(`/api/admin/reports?range=${range}`).then(setStats);
-    api.get("/api/admin/transactions?limit=10").then(d => setRecentTxns(d?.transactions || []));
+    setStatsLoading(true);
+    api.get(`/api/admin/reports?range=${range}`).then(d => { setStats(d); setStatsLoading(false); });
+    loadTxns(1);
   }, [range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpis = stats ? [
@@ -89,22 +148,27 @@ export default function AdminDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {kpis.map(({ label, value, icon: Icon, color }) => (
-          <Card key={label}>
-            <CardContent className="pt-4 pb-4">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>
-                <Icon size={18} />
-              </div>
-              <p className="text-2xl font-bold">{value ?? "—"}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{label}</p>
-            </CardContent>
-          </Card>
-        ))}
+        {statsLoading
+          ? [...Array(6)].map((_, i) => <SkeletonKpi key={i} />)
+          : kpis.map(({ label, value, icon: Icon, color }) => (
+            <Card key={label}>
+              <CardContent className="pt-4 pb-4">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>
+                  <Icon size={18} />
+                </div>
+                <p className="text-2xl font-bold">{value ?? "—"}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+              </CardContent>
+            </Card>
+          ))
+        }
       </div>
 
       {/* Service Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-        {serviceCards.map(({ label, icon: Icon, color, bg, count, volume, revenue, providerCost, grossFee, free }) => (
+        {statsLoading
+          ? [...Array(4)].map((_, i) => <SkeletonServiceCard key={i} />)
+          : serviceCards.map(({ label, icon: Icon, color, bg, count, volume, revenue, providerCost, grossFee, free }) => (
           <Card key={label}>
             <CardContent className="pt-4 pb-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -151,7 +215,10 @@ export default function AdminDashboard() {
       {/* Recent Transactions */}
       <Card>
         <CardContent className="pt-4">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Recent Transactions</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Recent Transactions</h2>
+            <span className="text-xs text-gray-400">{txnTotal.toLocaleString()} total</span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -165,19 +232,51 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {recentTxns.map((txn: any) => (
-                  <tr key={txn.id}>
-                    <td className="py-2.5 font-mono text-xs text-gray-500">{txn.transactionNumber}</td>
-                    <td className="py-2.5">{txn.user?.firstName} {txn.user?.lastName}</td>
-                    <td className="py-2.5 text-xs">{txn.type.replace(/_/g, " ")}</td>
-                    <td className="py-2.5 font-medium">{formatCurrency(txn.grossAmount)}</td>
-                    <td className="py-2.5 text-gray-500">{formatCurrency(txn.feeAmount)}</td>
-                    <td className="py-2.5"><Badge status={txn.status} /></td>
-                  </tr>
-                ))}
+                {txnLoading
+                  ? [...Array(10)].map((_, i) => <SkeletonTxnRow key={i} />)
+                  : recentTxns.map((txn: any) => (
+                    <tr key={txn.id}>
+                      <td className="py-2.5 font-mono text-xs text-gray-500">{txn.transactionNumber}</td>
+                      <td className="py-2.5">{txn.user?.firstName} {txn.user?.lastName}</td>
+                      <td className="py-2.5 text-xs">{txn.type.replace(/_/g, " ")}</td>
+                      <td className="py-2.5 font-medium">{formatCurrency(txn.grossAmount)}</td>
+                      <td className="py-2.5 text-gray-500">{formatCurrency(txn.feeAmount)}</td>
+                      <td className="py-2.5"><Badge status={txn.status} /></td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>
+
+          {!txnLoading && txnPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t mt-2">
+              <button onClick={() => loadTxns(txnPage - 1)} disabled={txnPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-40 bg-gray-100 text-gray-600">
+                <ChevronLeft size={16} /> Prev
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, txnPages) }, (_, i) => {
+                  const p = txnPages <= 5 ? i + 1 : txnPage <= 3 ? i + 1 : txnPage >= txnPages - 2 ? txnPages - 4 + i : txnPage - 2 + i;
+                  return (
+                    <button key={p} onClick={() => loadTxns(p)}
+                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${txnPage === p ? "bg-[#038E80] text-white" : "bg-gray-100 text-gray-600"}`}>
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => loadTxns(txnPage + 1)} disabled={txnPage === txnPages}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-40 bg-gray-100 text-gray-600">
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+          {!txnLoading && (
+            <p className="text-xs text-gray-400 text-center pt-2">
+              Showing {txnTotal === 0 ? 0 : Math.min((txnPage - 1) * 10 + 1, txnTotal)}–{Math.min(txnPage * 10, txnTotal)} of {txnTotal.toLocaleString()}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
