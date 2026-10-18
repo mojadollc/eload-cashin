@@ -19,6 +19,12 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { amount, channel, accountNumber, accountName } = parsed.data;
+
+  // Block if wallet has zero or no balance
+  const walletCheck = await prisma.wallet.findUnique({ where: { userId: payload.userId } });
+  if (!walletCheck || walletCheck.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active" }, { status: 403 });
+  if (Number(walletCheck.availableBalance) <= 0) return NextResponse.json({ error: "Insufficient balance. Please fund your wallet first." }, { status: 403 });
+
   try {
     const transaction = await initiateCashout(payload.userId, amount, channel, accountNumber, accountName);
     const markupFee = await calculateFee(FeeService.CASHOUT, amount);

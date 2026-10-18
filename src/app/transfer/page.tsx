@@ -27,6 +27,21 @@ export default function TransferPage() {
 
   const reset = () => { setStep("form"); setResult(null); setError(""); setAccountNumber(""); setAmount(""); };
 
+  // Zero-balance wall
+  if (wallet !== null && Number(wallet?.availableBalance ?? 0) <= 0) return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center px-6 space-y-5">
+      <div className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center">
+        <span className="text-4xl">💳</span>
+      </div>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800">No Balance</h2>
+        <p className="text-gray-400 mt-2 max-w-xs">You need to fund your wallet before transferring.</p>
+      </div>
+      <a href="/wallet/fund" className="w-full max-w-xs py-4 rounded-2xl text-white font-bold text-lg bg-[#038E80] flex items-center justify-center gap-2">Fund Wallet</a>
+      <a href="/dashboard" className="text-sm text-gray-400 underline">Back to Dashboard</a>
+    </div>
+  );
+
   if (step === "result") return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
       {result?.error ? (

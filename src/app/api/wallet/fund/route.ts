@@ -15,6 +15,11 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
+  // Wallet must exist and be active to fund
+  const wallet = await prisma.wallet.findUnique({ where: { userId: payload.userId } });
+  if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
+  if (wallet.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active" }, { status: 403 });
+
   const { amount } = parsed.data;
   const fee = await calculateFee(FeeService.WALLET_FUND, amount);
   const totalAmount = amount + fee;

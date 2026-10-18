@@ -22,6 +22,8 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   const senderWallet = await prisma.wallet.findUnique({ where: { userId: payload.userId }, include: { user: true } });
   if (!senderWallet) return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
+  if (senderWallet.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active" }, { status: 403 });
+  if (Number(senderWallet.availableBalance) <= 0) return NextResponse.json({ error: "Insufficient balance. Please fund your wallet first." }, { status: 403 });
 
   if (senderWallet.accountNumber === accountNumber)
     return NextResponse.json({ error: "Cannot transfer to your own wallet" }, { status: 400 });
