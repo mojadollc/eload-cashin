@@ -357,7 +357,7 @@ export default function EloadPage() {
             <div className="flex justify-between"><span className="text-sm text-gray-400">Mobile Number</span><span className="font-black text-gray-800 tracking-widest">{phone}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Network</span><span className="font-bold text-gray-800">{selectedProduct?.network}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Load Amount</span><span className="font-bold">{formatCurrency(selectedProduct?.amount || 0)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-gray-400">Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">CashIn-Tap Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
             <div className="flex justify-between border-t pt-3"><span className="font-bold">Total</span><span className="font-black text-base" style={{ color: networkColor }}>{formatCurrency((selectedProduct?.amount || 0) + fee)}</span></div>
             <div className="flex justify-between text-xs text-gray-400 pt-1"><span>Wallet Balance</span><span>{formatCurrency(wallet?.availableBalance || 0)}</span></div>
           </div>
