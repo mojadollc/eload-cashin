@@ -77,7 +77,7 @@ export default function FundWalletPage() {
           <Button className="w-full" size="lg" loading={loading} onClick={handleFund} disabled={amount < 100}>
             Continue to Payment
           </Button>
-          <p className="text-xs text-gray-400 text-center">You will be redirected to Xendit&apos;s secure payment page</p>
+          <p className="text-xs text-gray-400 text-center">You will be redirected to PayMongo&apos;s secure payment page</p>
         </CardContent>
       </Card>
     </div>

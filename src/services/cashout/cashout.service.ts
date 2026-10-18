@@ -3,8 +3,7 @@ import { TransactionType, TransactionStatus, Provider, FeeService } from "@/type
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
 import { reserveFunds, releaseHold, consumeHold } from "@/services/wallet/wallet.service";
 import { calculateFee } from "@/services/fees/fee.service";
-import { createDisbursement } from "@/providers/xendit/xendit.provider";
-import { createPayMongoDisbursement, PAYMONGO_CHANNELS } from "@/providers/paymongo/paymongo.provider";
+import { createPayMongoDisbursement } from "@/providers/paymongo/paymongo.provider";
 import { cashoutQueue } from "@/workers/queues";
 
 export async function initiateCashout(userId: string, amount: number, channel: string, accountNumber: string, accountName: string) {
@@ -12,7 +11,7 @@ export async function initiateCashout(userId: string, amount: number, channel: s
   const fee = await calculateFee(FeeService.CASHOUT, amount);
   const totalDeduction = amount + fee;
 
-  const provider = PAYMONGO_CHANNELS.has(channel.toUpperCase()) ? Provider.PAYMONGO : Provider.XENDIT;
+  const provider = Provider.PAYMONGO;
 
   const transaction = await prisma.$transaction(async (tx: any) => {
     const txn = await tx.transaction.create({
@@ -51,37 +50,23 @@ export async function processCashout(transactionId: string, holdId: string) {
   await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING } });
 
   try {
-    const isPayMongo = PAYMONGO_CHANNELS.has(txn.cashoutTxn.channel.toUpperCase());
-    let result: any;
-
-    if (isPayMongo) {
-      result = await createPayMongoDisbursement({
-        externalId: txn.transactionNumber,
-        amount: Number(txn.grossAmount),
-        bankCode: txn.cashoutTxn.channel,
-        accountNumber: txn.cashoutTxn.accountNumber,
-        accountName: txn.cashoutTxn.accountName,
-      });
-      result.id = result.id; // PayMongo returns data.id
-      result.status = result.attributes?.status || "PENDING";
-    } else {
-      result = await createDisbursement({
-        externalId: txn.transactionNumber,
-        amount: Number(txn.grossAmount),
-        bankCode: txn.cashoutTxn.channel,
-        accountHolderName: txn.cashoutTxn.accountName,
-        accountNumber: txn.cashoutTxn.accountNumber,
-        description: `CashIn Tap Cash Out - ${txn.transactionNumber}`,
-      });
-    }
+    const result = await createPayMongoDisbursement({
+      externalId: txn.transactionNumber,
+      amount: Number(txn.grossAmount),
+      bankCode: txn.cashoutTxn.channel,
+      accountNumber: txn.cashoutTxn.accountNumber,
+      accountName: txn.cashoutTxn.accountName,
+    });
+    const resultId = result.id;
+    const resultStatus = result.attributes?.status || "PENDING";
 
     await prisma.$transaction(async (tx: any) => {
-      await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.id, responsePayload: result, status: result.status, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });
-      await tx.cashoutTransaction.update({ where: { transactionId }, data: { disbursementId: result.id, cashoutStatus: "PROCESSING" } });
-      await tx.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING, providerReference: result.id } });
+      await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: resultId, responsePayload: result, status: resultStatus, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });
+      await tx.cashoutTransaction.update({ where: { transactionId }, data: { disbursementId: resultId, cashoutStatus: "PROCESSING" } });
+      await tx.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING, providerReference: resultId } });
     });
 
-    return { success: true, disbursementId: result.id };
+    return { success: true, disbursementId: resultId };
   } catch (error) {
     await releaseHold(holdId);
     await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.FAILED, failedAt: new Date() } });

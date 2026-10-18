@@ -77,7 +77,6 @@ enum FeeService {
 }
 
 enum Provider {
-  XENDIT
   PAYMONGO
   GBITS
   SYSTEM
@@ -223,15 +222,15 @@ model TransactionStatusHistory {
 }
 
 model FundingTransaction {
-  id              String   @id @default(cuid())
-  transactionId   String   @unique
-  paymentMethod   String
-  xenditInvoiceId String?
-  xenditPaymentId String?
-  checkoutUrl     String?
-  paidAt          DateTime?
+  id                    String   @id @default(cuid())
+  transactionId         String   @unique
+  paymentMethod         String
+  paymongoLinkId        String?
+  paymongoPaymentId     String?
+  checkoutUrl           String?
+  paidAt                DateTime?
 
-  transaction     Transaction @relation(fields: [transactionId], references: [id])
+  transaction           Transaction @relation(fields: [transactionId], references: [id])
 }
 
 model EloadProduct {

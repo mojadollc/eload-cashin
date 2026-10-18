@@ -6,7 +6,7 @@ import { z } from "zod";
 import { TransactionType, TransactionStatus, Provider, FeeService } from "@/types/enums";
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
 import { calculateFee } from "@/services/fees/fee.service";
-import { createInvoice } from "@/providers/xendit/xendit.provider";
+import { createPaymentLink } from "@/providers/paymongo/paymongo.provider";
 
 const schema = z.object({ amount: z.number().min(100).max(50000), paymentMethod: z.string().optional() });
 
@@ -16,7 +16,6 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { amount } = parsed.data;
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: payload.userId } });
   const fee = await calculateFee(FeeService.WALLET_FUND, amount);
   const totalAmount = amount + fee;
   const txnNumber = generateTransactionNumber("WALLET_FUND");
@@ -31,24 +30,32 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
         grossAmount: amount,
         feeAmount: fee,
         netAmount: totalAmount,
-        provider: Provider.XENDIT,
+        provider: Provider.PAYMONGO,
         idempotencyKey: generateIdempotencyKey(),
       },
     });
     await tx.fundingTransaction.create({ data: { transactionId: txn.id, paymentMethod: parsed.data.paymentMethod || "" } });
-    await tx.providerTransaction.create({ data: { transactionId: txn.id, provider: Provider.XENDIT } });
+    await tx.providerTransaction.create({ data: { transactionId: txn.id, provider: Provider.PAYMONGO } });
     return txn;
   });
 
-  let invoice;
+  let link;
   try {
-    invoice = await createInvoice({ externalId: txnNumber, amount: totalAmount, description: `Wallet Funding - ${txnNumber}`, payerEmail: user.email ?? undefined, successRedirectUrl: `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}`, failureRedirectUrl: `${process.env.APP_URL}/wallet/fund/return?failed=1&ref=${txnNumber}` });
+    link = await createPaymentLink({
+      externalId: txnNumber,
+      amount: totalAmount,
+      description: `CashIn Tap Wallet Funding - ${txnNumber}`,
+    });
   } catch (err: any) {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.FAILED } });
     return NextResponse.json({ error: err.message || "Payment provider error" }, { status: 502 });
   }
 
-  await prisma.fundingTransaction.update({ where: { transactionId: transaction.id }, data: { xenditInvoiceId: invoice.id, checkoutUrl: invoice.invoice_url, paymentMethod: parsed.data.paymentMethod || "" } });
+  const checkoutUrl = link.attributes?.checkout_url || link.attributes?.url;
+  await prisma.fundingTransaction.update({
+    where: { transactionId: transaction.id },
+    data: { paymongoLinkId: link.id, checkoutUrl, paymentMethod: parsed.data.paymentMethod || "" },
+  });
 
-  return NextResponse.json({ checkoutUrl: invoice.invoice_url, transactionNumber: txnNumber, amount, fee, total: totalAmount });
+  return NextResponse.json({ checkoutUrl, transactionNumber: txnNumber, amount, fee, total: totalAmount });
 });

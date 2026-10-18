@@ -6,10 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle, RefreshCw, Eye, EyeOff, Webhook, Trash2, Plus, ToggleRight } from "lucide-react";
 
-const XENDIT_FIELDS = [
-  { key: "XENDIT_SECRET_KEY", label: "Xendit Secret Key", placeholder: "xnd_production_..." },
-  { key: "XENDIT_WEBHOOK_TOKEN", label: "Xendit Webhook Token", placeholder: "your-webhook-token" },
-];
 const PAYMONGO_FIELDS = [
   { key: "PAYMONGO_SECRET_KEY", label: "PayMongo Secret Key", placeholder: "sk_live_..." },
   { key: "PAYMONGO_WEBHOOK_SECRET", label: "PayMongo Webhook Secret", placeholder: "whsec_..." },
@@ -111,16 +107,8 @@ export default function AdminSettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <h2 className="font-semibold">Xendit API</h2>
-            <p className="text-xs text-gray-400">Payment gateway for wallet funding and disbursements.</p>
-            {XENDIT_FIELDS.map(renderField)}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6 space-y-4">
             <h2 className="font-semibold">PayMongo API</h2>
-            <p className="text-xs text-gray-400">Bank disbursements (Send Funds) via PayMongo.</p>
+            <p className="text-xs text-gray-400">Payment gateway for wallet funding and bank disbursements.</p>
             {PAYMONGO_FIELDS.map(renderField)}
           </CardContent>
         </Card>
