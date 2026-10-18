@@ -51,10 +51,17 @@ export default function AdminSettingsPage() {
     setShow(s => ({ ...s, [key]: !s[key] }));
 
   const handleSave = async (restart = false) => {
-    if (restart) setRestarting(true); else setSaving(true);
-    const res = await api.post("/api/admin/settings", { ...values, restart });
-    if (restart) setRestarting(false); else setSaving(false);
-    if (res?.ok) { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+    if (restart) {
+      setRestarting(true);
+      // Fire-and-forget — pm2 kills the process before it can respond
+      api.post("/api/admin/settings", { ...values, restart: true }).catch(() => {});
+      setTimeout(() => { setRestarting(false); setSaved(true); setTimeout(() => setSaved(false), 3000); }, 6000);
+    } else {
+      setSaving(true);
+      const res = await api.post("/api/admin/settings", { ...values, restart: false });
+      setSaving(false);
+      if (res?.ok) { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+    }
   };
 
   const renderField = ({ key, label, placeholder }: { key: string; label: string; placeholder: string }) => (
