@@ -10,7 +10,7 @@ import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 const SERVICES = ["WALLET_FUND", "ELOAD", "CASHOUT"];
 const FEE_TYPES = ["FIXED", "PERCENTAGE"];
 
-const emptyForm = { service: "WALLET_FUND", feeType: "FIXED", amount: "", rate: "", minimum: "", maximum: "" };
+const emptyForm = { service: "WALLET_FUND", feeType: "FIXED", amount: "", rate: "", minimum: "", maximum: "", minAmount: "", maxAmount: "" };
 
 export default function AdminFeesPage() {
   const api = useApi();
@@ -36,6 +36,8 @@ export default function AdminFeesPage() {
       ...(form.rate ? { rate: Number(form.rate) / 100 } : {}),
       ...(form.minimum ? { minimum: Number(form.minimum) } : {}),
       ...(form.maximum ? { maximum: Number(form.maximum) } : {}),
+      ...(form.minAmount ? { minAmount: Number(form.minAmount) } : {}),
+      ...(form.maxAmount ? { maxAmount: Number(form.maxAmount) } : {}),
     });
     setAdding(false);
     setForm(emptyForm);
@@ -50,6 +52,8 @@ export default function AdminFeesPage() {
       rate: r.feeType === "PERCENTAGE" ? String((Number(r.rate) * 100).toFixed(2)) : "",
       minimum: r.minimum ? String(r.minimum) : "",
       maximum: r.maximum ? String(r.maximum) : "",
+      minAmount: r.minAmount ? String(r.minAmount) : "",
+      maxAmount: r.maxAmount ? String(r.maxAmount) : "",
       isActive: r.isActive,
     });
   };
@@ -61,6 +65,8 @@ export default function AdminFeesPage() {
       ...(editData.rate ? { rate: Number(editData.rate) / 100 } : {}),
       ...(editData.minimum ? { minimum: Number(editData.minimum) } : {}),
       ...(editData.maximum ? { maximum: Number(editData.maximum) } : {}),
+      ...(editData.minAmount ? { minAmount: Number(editData.minAmount) } : {}),
+      ...(editData.maxAmount ? { maxAmount: Number(editData.maxAmount) } : {}),
       isActive: editData.isActive,
     });
     setEditId(null);
@@ -103,8 +109,8 @@ export default function AdminFeesPage() {
               ? <Input label="Fixed Amount (₱)" type="number" placeholder="15" value={form.amount} onChange={set("amount")} />
               : <Input label="Rate (%)" type="number" placeholder="1.5" value={form.rate} onChange={set("rate")} />
             }
-            <Input label="Min Transaction (₱)" type="number" placeholder="Optional" value={form.minimum} onChange={set("minimum")} />
-            <Input label="Max Transaction (₱)" type="number" placeholder="Optional" value={form.maximum} onChange={set("maximum")} />
+            <Input label="Min Transaction (₱)" type="number" placeholder="Optional" value={form.minAmount} onChange={set("minAmount")} />
+            <Input label="Max Transaction (₱)" type="number" placeholder="Optional" value={form.maxAmount} onChange={set("maxAmount")} />
           </div>
           <Button className="mt-4" loading={adding} onClick={handleAdd}><Plus size={16} className="mr-1" /> Add Rule</Button>
         </CardContent>
@@ -114,6 +120,13 @@ export default function AdminFeesPage() {
         <Card key={service}>
           <CardContent className="pt-4">
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">{service.replace(/_/g, " ")}</h2>
+            {service === "CASHOUT" && (
+              <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-3 text-sm">
+                <span className="font-semibold text-blue-700">₱10.00</span>
+                <span className="text-blue-600">PayMongo disbursement fee — hardcoded, always applied</span>
+                <span className="ml-auto text-xs bg-blue-100 text-blue-500 font-medium px-2 py-0.5 rounded-full">System</span>
+              </div>
+            )}
             {grouped[service]?.length === 0 ? (
               <p className="text-sm text-gray-400">No fee rules configured</p>
             ) : (
@@ -122,8 +135,8 @@ export default function AdminFeesPage() {
                   <tr className="text-left text-xs text-gray-400 border-b">
                     <th className="pb-2 font-medium">Type</th>
                     <th className="pb-2 font-medium">Amount / Rate</th>
-                    <th className="pb-2 font-medium">Min Txn</th>
-                    <th className="pb-2 font-medium">Max Txn</th>
+                    <th className="pb-2 font-medium">Min Txn Amt</th>
+                    <th className="pb-2 font-medium">Max Txn Amt</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Actions</th>
                   </tr>
@@ -143,10 +156,10 @@ export default function AdminFeesPage() {
                         }
                       </td>
                       <td className="py-2 pr-2">
-                        <input type="number" value={editData.minimum} onChange={e => setEditData((d: any) => ({ ...d, minimum: e.target.value }))} className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-[#038E80]" placeholder="—" />
+                        <input type="number" value={editData.minAmount} onChange={e => setEditData((d: any) => ({ ...d, minAmount: e.target.value }))} className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-[#038E80]" placeholder="—" />
                       </td>
                       <td className="py-2 pr-2">
-                        <input type="number" value={editData.maximum} onChange={e => setEditData((d: any) => ({ ...d, maximum: e.target.value }))} className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-[#038E80]" placeholder="—" />
+                        <input type="number" value={editData.maxAmount} onChange={e => setEditData((d: any) => ({ ...d, maxAmount: e.target.value }))} className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-[#038E80]" placeholder="—" />
                       </td>
                       <td className="py-2 pr-2">
                         <select value={editData.isActive ? "1" : "0"} onChange={e => setEditData((d: any) => ({ ...d, isActive: e.target.value === "1" }))} className="px-2 py-1 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-[#038E80]">
@@ -167,8 +180,8 @@ export default function AdminFeesPage() {
                       <td className="py-2.5 font-medium">
                         {r.feeType === "FIXED" ? formatCurrency(r.amount) : `${(Number(r.rate) * 100).toFixed(2)}%`}
                       </td>
-                      <td className="py-2.5 text-gray-500">{r.minimum ? formatCurrency(r.minimum) : "—"}</td>
-                      <td className="py-2.5 text-gray-500">{r.maximum ? formatCurrency(r.maximum) : "—"}</td>
+                      <td className="py-2.5 text-gray-500">{r.minAmount ? formatCurrency(r.minAmount) : "—"}</td>
+                      <td className="py-2.5 text-gray-500">{r.maxAmount ? formatCurrency(r.maxAmount) : "—"}</td>
                       <td className="py-2.5">
                         <span className={`text-xs font-medium ${r.isActive ? "text-green-600" : "text-gray-400"}`}>
                           {r.isActive ? "Active" : "Inactive"}
