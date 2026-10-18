@@ -4,12 +4,15 @@ import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/securit
 import { reserveFunds, releaseHold, consumeHold } from "@/services/wallet/wallet.service";
 import { calculateFee } from "@/services/fees/fee.service";
 import { createDisbursement } from "@/providers/xendit/xendit.provider";
+import { createPayMongoDisbursement, PAYMONGO_CHANNELS } from "@/providers/paymongo/paymongo.provider";
 import { cashoutQueue } from "@/workers/queues";
 
 export async function initiateCashout(userId: string, amount: number, channel: string, accountNumber: string, accountName: string) {
   const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
   const fee = await calculateFee(FeeService.CASHOUT, amount);
   const totalDeduction = amount + fee;
+
+  const provider = PAYMONGO_CHANNELS.has(channel.toUpperCase()) ? Provider.PAYMONGO : Provider.XENDIT;
 
   const transaction = await prisma.$transaction(async (tx: any) => {
     const txn = await tx.transaction.create({
@@ -21,12 +24,12 @@ export async function initiateCashout(userId: string, amount: number, channel: s
         grossAmount: amount,
         feeAmount: fee,
         netAmount: totalDeduction,
-        provider: Provider.XENDIT,
+        provider,
         idempotencyKey: generateIdempotencyKey(),
       },
     });
     await tx.cashoutTransaction.create({ data: { transactionId: txn.id, channel, accountNumber, accountName } });
-    await tx.providerTransaction.create({ data: { transactionId: txn.id, provider: Provider.XENDIT } });
+    await tx.providerTransaction.create({ data: { transactionId: txn.id, provider } });
     return txn;
   });
 
@@ -48,14 +51,29 @@ export async function processCashout(transactionId: string, holdId: string) {
   await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING } });
 
   try {
-    const result = await createDisbursement({
-      externalId: txn.transactionNumber,
-      amount: Number(txn.grossAmount),
-      bankCode: txn.cashoutTxn.channel,
-      accountHolderName: txn.cashoutTxn.accountName,
-      accountNumber: txn.cashoutTxn.accountNumber,
-      description: `CashIn Tap Cash Out - ${txn.transactionNumber}`,
-    });
+    const isPayMongo = PAYMONGO_CHANNELS.has(txn.cashoutTxn.channel.toUpperCase());
+    let result: any;
+
+    if (isPayMongo) {
+      result = await createPayMongoDisbursement({
+        externalId: txn.transactionNumber,
+        amount: Number(txn.grossAmount),
+        bankCode: txn.cashoutTxn.channel,
+        accountNumber: txn.cashoutTxn.accountNumber,
+        accountName: txn.cashoutTxn.accountName,
+      });
+      result.id = result.id; // PayMongo returns data.id
+      result.status = result.attributes?.status || "PENDING";
+    } else {
+      result = await createDisbursement({
+        externalId: txn.transactionNumber,
+        amount: Number(txn.grossAmount),
+        bankCode: txn.cashoutTxn.channel,
+        accountHolderName: txn.cashoutTxn.accountName,
+        accountNumber: txn.cashoutTxn.accountNumber,
+        description: `CashIn Tap Cash Out - ${txn.transactionNumber}`,
+      });
+    }
 
     await prisma.$transaction(async (tx: any) => {
       await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.id, responsePayload: result, status: result.status, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });

@@ -7,7 +7,8 @@ import { CHANNEL_LABELS, CHANNEL_COLORS, QRPhData } from "@/lib/qrph/parser";
 
 const QRScanner = lazy(() => import("@/components/shared/qr-scanner"));
 
-const CHANNELS = ["GCASH", "PAYMAYA", "SHOPEEPAY", "GRABPAY", "BPI", "BDO", "UBP", "RCBC"];
+const CHANNELS = ["GCASH", "PAYMAYA", "SHOPEEPAY", "GRABPAY", "BPI", "BDO", "UBP", "RCBC", "METROBANK", "LANDBANK", "PNB", "CHINABANK", "EASTWEST", "PSBANK"];
+const BANK_CHANNELS = new Set(["BPI", "BDO", "UBP", "RCBC", "METROBANK", "LANDBANK", "PNB", "CHINABANK", "EASTWEST", "PSBANK"]);
 const QUICK_AMOUNTS = [100, 500, 1000, 2000, 5000];
 
 type Step = "form" | "confirm" | "processing" | "result";
@@ -234,10 +235,24 @@ export default function CashoutPage() {
 
           {/* Channel picker — always visible */}
           <div className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Send To</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">E-Wallets</p>
             <div className="grid grid-cols-4 gap-2">
-              {CHANNELS.map(c => {
+              {["GCASH", "PAYMAYA", "SHOPEEPAY", "GRABPAY"].map(c => {
                 const color = CHANNEL_COLORS[c] || "#038E80";
+                const active = channel === c;
+                return (
+                  <button key={c} onClick={() => setChannel(c)}
+                    className={`py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${active ? "border-transparent text-white" : "border-gray-100 text-gray-600 bg-gray-50"}`}
+                    style={active ? { backgroundColor: color } : {}}>
+                    {CHANNEL_LABELS[c] || c}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-3">Banks <span className="normal-case font-normal text-gray-300">via PayMongo</span></p>
+            <div className="grid grid-cols-4 gap-2">
+              {["BPI", "BDO", "UBP", "RCBC", "METROBANK", "LANDBANK", "PNB", "CHINABANK", "EASTWEST", "PSBANK"].map(c => {
+                const color = CHANNEL_COLORS[c] || "#0A6EBD";
                 const active = channel === c;
                 return (
                   <button key={c} onClick={() => setChannel(c)}

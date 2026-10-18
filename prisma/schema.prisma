@@ -78,6 +78,7 @@ enum FeeService {
 
 enum Provider {
   XENDIT
+  PAYMONGO
   GBITS
   SYSTEM
 }

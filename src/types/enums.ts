@@ -26,7 +26,7 @@ export const TransactionStatus = {
 } as const;
 export type TransactionStatus = keyof typeof TransactionStatus;
 
-export const Provider = { XENDIT: "XENDIT", GBITS: "GBITS", SYSTEM: "SYSTEM" } as const;
+export const Provider = { XENDIT: "XENDIT", PAYMONGO: "PAYMONGO", GBITS: "GBITS", SYSTEM: "SYSTEM" } as const;
 export type Provider = keyof typeof Provider;
 
 export const FeeService = { WALLET_FUND: "WALLET_FUND", ELOAD: "ELOAD", CASHOUT: "CASHOUT" } as const;

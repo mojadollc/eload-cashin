@@ -169,10 +169,12 @@ export const CHANNEL_LABELS: Record<string, string> = {
   GCASH: "GCash", PAYMAYA: "Maya", GRABPAY: "GrabPay", SHOPEEPAY: "ShopeePay",
   BPI: "BPI", BDO: "BDO", UBP: "UnionBank", RCBC: "RCBC",
   METROBANK: "Metrobank", LANDBANK: "Landbank", PNB: "PNB", INSTAPAY: "InstaPay",
+  CHINABANK: "China Bank", EASTWEST: "EastWest", PSBANK: "PSBank",
 };
 
 export const CHANNEL_COLORS: Record<string, string> = {
   GCASH: "#007DFE", PAYMAYA: "#6366F1", GRABPAY: "#00B14F", SHOPEEPAY: "#EE4D2D",
   BPI: "#CC0000", BDO: "#003087", UBP: "#E31837", RCBC: "#FFD700",
   METROBANK: "#003087", LANDBANK: "#006400", PNB: "#003087", INSTAPAY: "#038E80",
+  CHINABANK: "#C8102E", EASTWEST: "#0033A0", PSBANK: "#005BAA",
 };
