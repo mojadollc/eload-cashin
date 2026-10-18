@@ -9,16 +9,16 @@ export function getTokenFromRequest(req: NextRequest): string | null {
 }
 
 export function requireAuth(
-  handler: (req: NextRequest, payload: JwtPayload) => Promise<NextResponse>,
+  handler: (req: NextRequest, payload: JwtPayload, ctx?: any) => Promise<NextResponse>,
   roles?: UserRole[]
 ) {
-  return async (req: NextRequest) => {
+  return async (req: NextRequest, ctx?: any) => {
     const token = getTokenFromRequest(req);
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     try {
       const payload = verifyAccessToken(token);
       if (roles && !roles.includes(payload.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      return handler(req, payload);
+      return handler(req, payload, ctx);
     } catch {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }

@@ -11,8 +11,8 @@ const schema = z.object({
   reason: z.string().min(5),
 });
 
-export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) => {
-  const walletId = req.url.split("/api/admin/wallets/")[1].split("/adjust")[0];
+export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload, ctx: { params: Promise<{ id: string }> }) => {
+  const { id: walletId } = await ctx.params;
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
