@@ -94,8 +94,7 @@ export async function getPayMongoDisbursement(disbursementId: string) {
 
 // ── Webhook Verification ──────────────────────────────────────────────────────
 
-export function verifyPayMongoWebhook(rawBody: string, sigHeader: string): boolean {
-  const secret = process.env.PAYMONGO_WEBHOOK_SECRET!;
+export function verifyPayMongoWebhook(rawBody: string, sigHeader: string, secret: string): boolean {
   const tPart = sigHeader.split(",").find((p) => p.startsWith("t="));
   const v1Part = sigHeader.split(",").find((p) => p.startsWith("v1="));
   if (!tPart || !v1Part) return false;

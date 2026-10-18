@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const sigHeader = req.headers.get("paymongo-signature") || "";
 
-  if (!verifyPayMongoWebhook(rawBody, sigHeader)) {
+  if (!verifyPayMongoWebhook(rawBody, sigHeader, process.env.PAYMONGO_DISBURSEMENT_WEBHOOK_SECRET!)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

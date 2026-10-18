@@ -9,7 +9,8 @@ import { CheckCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
 const PAYMONGO_FIELDS = [
   { key: "PAYMONGO_SECRET_KEY", label: "Secret Key", placeholder: "sk_live_..." },
   { key: "PAYMONGO_PUBLIC_KEY", label: "Public Key", placeholder: "pk_live_..." },
-  { key: "PAYMONGO_WEBHOOK_SECRET", label: "Webhook Secret", placeholder: "whsec_..." },
+  { key: "PAYMONGO_PAYMENT_WEBHOOK_SECRET", label: "Payment Webhook Secret", placeholder: "whsec_... (from payment webhook)" },
+  { key: "PAYMONGO_DISBURSEMENT_WEBHOOK_SECRET", label: "Disbursement Webhook Secret", placeholder: "whsec_... (from disbursement webhook)" },
 ];
 const GBITS_FIELDS = [
   { key: "GBITS_API_URL", label: "API URL", placeholder: "https://api.gbits.ph" },
