@@ -4,6 +4,8 @@ import { useApi } from "@/components/shared/use-api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { User, Phone, Mail, LogOut, ChevronRight, ChevronLeft, Shield, Bell, FileText, X, Calendar, Wallet, Copy, Check, Smartphone, SendHorizonal, RotateCcw, RefreshCw, Receipt } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -14,8 +16,6 @@ function CopyButton({ text }: { text: string }) {
     </button>
   );
 }
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate } from "@/lib/utils";
 
 const TX_META: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   ELOAD:       { icon: Smartphone,    color: "text-blue-600",   bg: "bg-blue-50" },
@@ -294,7 +294,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 );
-              })}}
+              })}
             </div>
 
             {/* Pagination */}
