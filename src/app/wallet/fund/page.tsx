@@ -26,14 +26,9 @@ export default function FundWalletPage() {
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // When user navigates back from PayMongo, auto-cancel the pending transaction
-    const stored = sessionStorage.getItem(PENDING_KEY);
-    if (stored) {
-      sessionStorage.removeItem(PENDING_KEY);
-      api.post("/api/wallet/fund/cancel", { transactionNumber: stored }).catch(() => {});
-    }
-
-    const handleReturn = () => {
+    // Cancel only when user navigates BACK (pageshow from bfcache or fresh mount after back-nav)
+    // Do NOT use visibilitychange — it fires when the tab is hidden during redirect too
+    const cancelPending = () => {
       const txn = sessionStorage.getItem(PENDING_KEY);
       if (txn) {
         sessionStorage.removeItem(PENDING_KEY);
@@ -41,12 +36,16 @@ export default function FundWalletPage() {
       }
     };
 
-    window.addEventListener("pageshow", handleReturn);
-    document.addEventListener("visibilitychange", handleReturn);
-    return () => {
-      window.removeEventListener("pageshow", handleReturn);
-      document.removeEventListener("visibilitychange", handleReturn);
+    // pageshow fires when page is restored from bfcache (back button)
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) cancelPending();
     };
+
+    // Fresh mount after back-nav (non-bfcache browsers)
+    cancelPending();
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFund = async () => {
