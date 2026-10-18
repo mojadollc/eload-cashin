@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 import type { RecaptchaVerifier as RV, ConfirmationResult } from "firebase/auth";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +87,8 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const recaptchaRef = useRef<RV | null>(null);
 
   useEffect(() => {
@@ -191,8 +194,18 @@ export default function RegisterPage() {
                 </div>
                 <Input label="Mobile Number" placeholder="09XXXXXXXXX" value={form.mobile} onChange={set("mobile")} required />
                 <Input label="Email" type="email" value={form.email} onChange={set("email")} required />
-                <Input label="Password" type="password" value={form.password} onChange={set("password")} required />
-                <Input label="Confirm Password" type="password" value={form.confirmPassword} onChange={set("confirmPassword")} required />
+                <div className="relative">
+                  <Input label="Password" type={showPw ? "text" : "password"} value={form.password} onChange={set("password")} required />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input label="Confirm Password" type={showConfirmPw ? "text" : "password"} value={form.confirmPassword} onChange={set("confirmPassword")} required />
+                  <button type="button" onClick={() => setShowConfirmPw(v => !v)} className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                    {showConfirmPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
                 <Input label="Referral Code (optional)" value={form.referralCode} onChange={set("referralCode")} />
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <Button type="submit" className="w-full" size="lg" loading={loading}>Create Account</Button>

@@ -6,6 +6,7 @@ import { useAuth } from "@/components/shared/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -15,6 +16,7 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("verified") === "1") setVerified(true);
@@ -54,7 +56,12 @@ function LoginForm() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input label="Mobile Number" placeholder="09XXXXXXXXX" value={form.mobile} onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))} required />
               <div>
-                <Input label="Password" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
+                <div className="relative">
+                  <Input label="Password" type={showPw ? "text" : "password"} placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-8 text-gray-400 hover:text-gray-600">
+                    {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
                 <div className="text-right mt-1">
                   <Link href="/forgot-password" className="text-xs text-[#038E80] hover:underline">Forgot password?</Link>
                 </div>
