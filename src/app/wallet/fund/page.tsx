@@ -26,8 +26,27 @@ export default function FundWalletPage() {
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Clear any leftover session key — do NOT cancel, Xendit may still settle it
-    sessionStorage.removeItem(PENDING_KEY);
+    // When user navigates back from PayMongo, auto-cancel the pending transaction
+    const stored = sessionStorage.getItem(PENDING_KEY);
+    if (stored) {
+      sessionStorage.removeItem(PENDING_KEY);
+      api.post("/api/wallet/fund/cancel", { transactionNumber: stored }).catch(() => {});
+    }
+
+    const handleReturn = () => {
+      const txn = sessionStorage.getItem(PENDING_KEY);
+      if (txn) {
+        sessionStorage.removeItem(PENDING_KEY);
+        api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
+      }
+    };
+
+    window.addEventListener("pageshow", handleReturn);
+    document.addEventListener("visibilitychange", handleReturn);
+    return () => {
+      window.removeEventListener("pageshow", handleReturn);
+      document.removeEventListener("visibilitychange", handleReturn);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFund = async () => {
