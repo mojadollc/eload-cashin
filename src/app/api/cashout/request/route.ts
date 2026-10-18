@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/database/prisma";
 import { requireAuth } from "@/lib/auth/middleware";
 import { JwtPayload } from "@/lib/auth/jwt";
 import { z } from "zod";
