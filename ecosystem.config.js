@@ -20,7 +20,7 @@ module.exports = {
     {
       name: 'cashin-tap-worker',
       script: 'node_modules/.bin/ts-node',
-      args: "--compiler-options '{\"module\":\"CommonJS\"}' src/workers/worker.ts",
+      args: 'src/workers/worker.ts',
       cwd: '/var/www/cashin-tap',
       env: {
         NODE_ENV: 'production',

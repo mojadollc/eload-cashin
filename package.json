@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:studio": "prisma studio",
-    "worker": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' src/workers/worker.ts"
+    "worker": "ts-node src/workers/worker.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
@@ -54,6 +54,7 @@
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.7.0",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "uuid": "^14.0.2",
     "zod": "^4.6.5"
   },
