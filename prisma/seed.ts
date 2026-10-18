@@ -10,7 +10,7 @@ async function main() {
   await prisma.feeRule.deleteMany();
   await prisma.feeRule.createMany({
     data: [
-      { service: "WALLET_FUND", feeType: "FIXED", amount: 15 },
+      { service: "WALLET_FUND", feeType: "FIXED", amount: 10 },
       { service: "ELOAD", feeType: "FIXED", amount: 2 },
       { service: "CASHOUT", feeType: "FIXED", amount: 15 },
     ] as any[],

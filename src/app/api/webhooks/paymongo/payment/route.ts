@@ -59,7 +59,16 @@ export async function POST(req: NextRequest) {
   await creditWallet(wallet.id, Number(transaction.grossAmount), "Wallet Funding", transaction.id, txnNumber);
 
   await prisma.notification.create({
-    data: { userId: transaction.userId, title: "Wallet Funded", message: `₱${Number(transaction.grossAmount).toLocaleString()} has been added to your wallet.`, type: "WALLET_FUND" },
+    data: {
+      userId: transaction.userId,
+      title: "Wallet Funded",
+      message: `₱${Number(transaction.grossAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been added to your wallet.${
+        Number(transaction.feeAmount) > 0
+          ? ` (Service fee of ₱${Number(transaction.feeAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })} was charged.)`
+          : ""
+      }`,
+      type: "WALLET_FUND",
+    },
   });
 
   return NextResponse.json({ ok: true });

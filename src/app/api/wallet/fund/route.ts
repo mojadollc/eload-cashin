@@ -44,7 +44,9 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     link = await createPaymentLink({
       externalId: txnNumber,
       amount: totalAmount,
-      description: `CashIn Tap Wallet Funding - ${txnNumber}`,
+      description: fee > 0
+        ? `CashIn Tap Wallet Funding - ${txnNumber} (Load: ₱${amount.toFixed(2)} + Service Fee: ₱${fee.toFixed(2)})`
+        : `CashIn Tap Wallet Funding - ${txnNumber}`,
     });
   } catch (err: any) {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.FAILED } });
