@@ -4,8 +4,7 @@ import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 export default function AdminWalletsPage() {
@@ -66,7 +65,7 @@ export default function AdminWalletsPage() {
                       <td className="py-2.5 font-medium">{formatCurrency(u.wallet?.availableBalance || 0)}</td>
                       <td className="py-2.5 text-gray-500">{formatCurrency(u.wallet?.pendingBalance || 0)}</td>
                       <td className="py-2.5">
-                        <button onClick={() => setSelected(u)} className="text-xs text-[#038E80] font-medium hover:underline flex items-center gap-1">
+                        <button onClick={() => setSelected(u)} disabled={!u.wallet?.id} className="text-xs text-[#038E80] font-medium hover:underline flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                           <SlidersHorizontal size={12} /> Adjust
                         </button>
                       </td>
