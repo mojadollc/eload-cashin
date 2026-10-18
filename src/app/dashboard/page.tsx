@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Smartphone, ArrowDownCircle, List, User, Eye, EyeOff, Plus } from "lucide-react";
+import { Smartphone, ArrowDownCircle, List, User, Eye, EyeOff, Plus, Wallet } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -30,9 +30,9 @@ export default function DashboardPage() {
 
   const quickActions = [
     { href: "/eload", icon: Smartphone, label: "E-Load", color: "bg-blue-50 text-blue-600" },
-    { href: "/cashout", icon: ArrowDownCircle, label: "Cash Out", color: "bg-purple-50 text-purple-600" },
-    { href: "/transactions", icon: List, label: "Transactions", color: "bg-orange-50 text-orange-600" },
-    { href: "/profile", icon: User, label: "Profile", color: "bg-green-50 text-green-600" },
+    { href: "/cashout", icon: ArrowDownCircle, label: "Send Out", color: "bg-purple-50 text-purple-600" },
+    { href: "/transfer", icon: Wallet, label: "Transfer", color: "bg-teal-50 text-teal-600" },
+    { href: "/transactions", icon: List, label: "History", color: "bg-orange-50 text-orange-600" },
   ];
 
   const txIcon: Record<string, string> = { ELOAD: "📱", WALLET_FUND: "💰", CASHOUT: "💸", REFUND: "↩️" };
@@ -64,6 +64,9 @@ export default function DashboardPage() {
             {showBalance ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
+        {wallet?.accountNumber && (
+          <p className="text-white/60 text-xs mt-2 font-mono tracking-widest">{wallet.accountNumber}</p>
+        )}
         {wallet?.pendingBalance > 0 && (
           <p className="text-white/60 text-sm mt-1">Pending: {formatCurrency(wallet.pendingBalance)}</p>
         )}

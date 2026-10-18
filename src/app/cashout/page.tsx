@@ -207,6 +207,16 @@ export default function CashoutPage() {
         </div>
 
         <div className="px-4 -mt-10 pb-8 space-y-4">
+          {/* CashIn Tap Transfer */}
+          <a href="/transfer"
+            className="w-full bg-white rounded-2xl shadow-sm border-2 border-dashed border-[#038E80]/30 py-5 flex flex-col items-center gap-2 active:scale-[0.98] transition-all">
+            <div className="w-12 h-12 rounded-2xl bg-[#038E80]/10 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#038E80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            </div>
+            <p className="text-sm font-bold text-[#038E80]">CashIn Tap Wallet</p>
+            <p className="text-xs text-gray-400">Free · Instant · No fees</p>
+          </a>
+
           {/* QR Scan button */}
           <button onClick={() => setShowScanner(true)}
             className="w-full bg-white rounded-2xl shadow-sm border-2 border-dashed border-[#038E80]/30 py-5 flex flex-col items-center gap-2 active:scale-[0.98] transition-all">
