@@ -10,5 +10,5 @@ export function formatCurrency(amount: number | string) {
 }
 
 export function formatDate(date: string | Date) {
-  return new Date(date).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(date).toLocaleDateString("en-PH", { timeZone: "Asia/Manila", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }

@@ -8,40 +8,49 @@ const PAYMONGO_DISBURSEMENT_FEE = 10;
 export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) => {
   const { searchParams } = new URL(req.url);
   const range = searchParams.get("range") || "today";
-  const now = new Date();
+
+  // Derive current date in PHT (UTC+8)
+  const nowUtc = new Date();
+  const phtOffset = 8 * 60 * 60 * 1000;
+  const now = new Date(nowUtc.getTime() + phtOffset);
+  // PHT midnight as UTC
+  const phtMidnight = (y: number, m: number, d: number) =>
+    new Date(Date.UTC(y, m, d) - phtOffset);
+
   const from =
-    range === "today" ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) :
-    range === "week"  ? new Date(now.getTime() - 7 * 86400000) :
-    range === "month" ? new Date(now.getFullYear(), now.getMonth(), 1) :
-    new Date(now.getFullYear(), 0, 1);
+    range === "today" ? phtMidnight(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) :
+    range === "week"  ? new Date(nowUtc.getTime() - 7 * 86400000) :
+    range === "month" ? phtMidnight(now.getUTCFullYear(), now.getUTCMonth(), 1) :
+    phtMidnight(now.getUTCFullYear(), 0, 1);
 
   // Build chart buckets
   const buckets: { label: string; from: Date; to: Date }[] = [];
   if (range === "today") {
     for (let h = 0; h < 24; h++) {
-      const f = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h);
+      const f = new Date(phtMidnight(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()).getTime() + h * 3600000);
       const t = new Date(f.getTime() + 3600000);
       buckets.push({ label: `${String(h).padStart(2, "0")}:00`, from: f, to: t });
     }
   } else if (range === "week") {
     for (let d = 6; d >= 0; d--) {
-      const f = new Date(now.getTime() - d * 86400000);
-      f.setHours(0, 0, 0, 0);
+      const dayUtc = new Date(nowUtc.getTime() - d * 86400000);
+      const dayPht = new Date(dayUtc.getTime() + phtOffset);
+      const f = phtMidnight(dayPht.getUTCFullYear(), dayPht.getUTCMonth(), dayPht.getUTCDate());
       const t = new Date(f.getTime() + 86400000);
-      buckets.push({ label: f.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), from: f, to: t });
+      buckets.push({ label: f.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "numeric" }), from: f, to: t });
     }
   } else if (range === "month") {
-    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const days = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
     for (let d = 1; d <= days; d++) {
-      const f = new Date(now.getFullYear(), now.getMonth(), d);
-      const t = new Date(now.getFullYear(), now.getMonth(), d + 1);
+      const f = phtMidnight(now.getUTCFullYear(), now.getUTCMonth(), d);
+      const t = new Date(f.getTime() + 86400000);
       buckets.push({ label: `${d}`, from: f, to: t });
     }
   } else {
     for (let m = 0; m < 12; m++) {
-      const f = new Date(now.getFullYear(), m, 1);
-      const t = new Date(now.getFullYear(), m + 1, 1);
-      buckets.push({ label: f.toLocaleDateString("en-PH", { month: "short" }), from: f, to: t });
+      const f = phtMidnight(now.getUTCFullYear(), m, 1);
+      const t = phtMidnight(now.getUTCFullYear(), m + 1, 1);
+      buckets.push({ label: f.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short" }), from: f, to: t });
     }
   }
 
