@@ -28,6 +28,8 @@ export interface CreatePaymentLinkParams {
   externalId: string;
   amount: number;
   description: string;
+  successUrl?: string;
+  failureUrl?: string;
 }
 
 export async function createPaymentLink(params: CreatePaymentLinkParams) {
@@ -38,6 +40,7 @@ export async function createPaymentLink(params: CreatePaymentLinkParams) {
           amount: Math.round(params.amount * 100),
           description: params.description,
           remarks: params.externalId,
+          ...(params.successUrl && { redirect: { success: params.successUrl, failed: params.failureUrl || params.successUrl } }),
         },
       },
     });

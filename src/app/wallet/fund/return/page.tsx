@@ -21,21 +21,36 @@ function ReturnContent() {
   useEffect(() => {
     if (!ref) { router.replace("/wallet"); return; }
 
-    if (failed === "1") {
-      // Check anyway — user may have paid despite failure redirect
-    }
+    let attempts = 0;
+    const MAX_ATTEMPTS = 40; // 40 × 3s = 2 minutes
 
-    api.post("/api/wallet/fund/check", { transactionNumber: ref }).then((res: any) => {
-      if (res?.status === "paid") {
-        setAmount(res.amount || 0);
-        setStatus("paid");
-      } else if (res?.status === "expired") {
-        setStatus("expired");
-      } else {
-        // QRPH or other async — still pending on Xendit
-        setStatus("pending");
+    const check = async () => {
+      try {
+        const res: any = await api.post("/api/wallet/fund/check", { transactionNumber: ref });
+        if (res?.status === "paid") {
+          setAmount(res.amount || 0);
+          setStatus("paid");
+          // Auto-redirect to wallet after 2s
+          setTimeout(() => router.replace("/wallet?funded=1"), 2000);
+          return;
+        }
+        if (res?.status === "expired") {
+          setStatus("expired");
+          return;
+        }
+      } catch {
+        // network hiccup — keep polling
       }
-    }).catch(() => setStatus("failed"));
+
+      attempts++;
+      if (attempts >= MAX_ATTEMPTS) {
+        setStatus("pending"); // timed out, show pending UI
+        return;
+      }
+      setTimeout(check, 3000);
+    };
+
+    check();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── CHECKING ─────────────────────────────────────────────────────────────────
@@ -48,9 +63,9 @@ function ReturnContent() {
         </div>
       </div>
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">Processing Payment</h2>
-        <p className="text-gray-400 mt-2 text-sm">Please wait while we verify your payment...</p>
-        <p className="text-xs text-gray-300 mt-3">Do not close this screen</p>
+        <h2 className="text-2xl font-bold text-gray-800">Verifying Payment</h2>
+        <p className="text-gray-400 mt-2 text-sm">Waiting for QRPh confirmation...</p>
+        <p className="text-xs text-gray-300 mt-3">This may take a few seconds. Do not close this screen.</p>
       </div>
     </div>
   );
@@ -68,20 +83,7 @@ function ReturnContent() {
         <h2 className="text-3xl font-extrabold text-green-600">Payment Successful!</h2>
         {amount > 0 && <p className="text-5xl font-extrabold text-gray-800 mt-2">{formatCurrency(amount)}</p>}
         <p className="text-gray-400 mt-2 text-sm">Your wallet has been credited.</p>
-      </div>
-      {ref && (
-        <div className="bg-white rounded-2xl px-5 py-3 shadow-sm border border-gray-100 w-full max-w-xs">
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Reference No.</p>
-          <p className="text-sm font-black text-gray-800 font-mono break-all">{ref}</p>
-        </div>
-      )}
-      <div className="flex gap-3 w-full max-w-xs">
-        <Link href="/dashboard" className="flex-1 py-3.5 rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm flex items-center justify-center gap-2">
-          <Home size={16} /> Home
-        </Link>
-        <Link href="/wallet" className="flex-[2] py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 bg-[#038E80]">
-          <Wallet size={16} /> Check Balance
-        </Link>
+        <p className="text-xs text-gray-300 mt-1">Redirecting to your wallet...</p>
       </div>
     </div>
   );

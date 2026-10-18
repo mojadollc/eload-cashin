@@ -24,8 +24,10 @@ export async function POST(req: NextRequest) {
   if (!paymentData) return NextResponse.json({ ok: true });
 
   const paymongoPaymentId: string = paymentData.id;
-  // remarks holds our transaction number (set during link creation)
-  const txnNumber: string = paymentData.attributes?.remarks || paymentData.attributes?.description || "";
+  // remarks may contain full description — extract the WF- transaction number
+  const rawRemarks: string = paymentData.attributes?.remarks || paymentData.attributes?.description || "";
+  const txnMatch = rawRemarks.match(/WF-\d{8}-\d+/);
+  const txnNumber: string = txnMatch ? txnMatch[0] : rawRemarks.trim();
 
   const webhook = await prisma.providerWebhook.create({
     data: { provider: "PAYMONGO", eventType, payload, reference: txnNumber || paymongoPaymentId },
