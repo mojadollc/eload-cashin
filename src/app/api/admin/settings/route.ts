@@ -40,11 +40,31 @@ function parseEnv(content: string): Record<string, string> {
   return result;
 }
 
-function writeEnv(existing: Record<string, string>, updates: Record<string, string>): string {
-  const merged = { ...existing, ...updates };
-  return Object.entries(merged)
-    .map(([k, v]) => `${k}="${v}"`)
-    .join("\n") + "\n";
+function writeEnv(content: string, updates: Record<string, string>): string {
+  const lines = content.split("\n");
+  const updated = new Set<string>();
+
+  const result = lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return line;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) return line;
+    const key = trimmed.slice(0, eq).trim();
+    if (key in updates) {
+      updated.add(key);
+      return `${key}="${updates[key]}"`;
+    }
+    return line;
+  });
+
+  // Append any keys that didn't exist in the file yet
+  for (const [key, val] of Object.entries(updates)) {
+    if (!updated.has(key)) {
+      result.push(`${key}="${val}"`);
+    }
+  }
+
+  return result.join("\n");
 }
 
 function mask(val: string): string {
@@ -65,7 +85,6 @@ export const GET = requireAuth(async (_req: NextRequest, _payload: JwtPayload) =
 export const POST = requireAuth(async (req: NextRequest, _payload: JwtPayload) => {
   const body = await req.json();
   const content = fs.existsSync(ENV_PATH) ? fs.readFileSync(ENV_PATH, "utf-8") : "";
-  const existing = parseEnv(content);
 
   const updates: Record<string, string> = {};
   for (const key of EDITABLE_KEYS) {
@@ -74,7 +93,7 @@ export const POST = requireAuth(async (req: NextRequest, _payload: JwtPayload) =
     }
   }
 
-  fs.writeFileSync(ENV_PATH, writeEnv(existing, updates), "utf-8");
+  fs.writeFileSync(ENV_PATH, writeEnv(content, updates), "utf-8");
 
   const restart = body.restart !== false;
   if (restart) {
