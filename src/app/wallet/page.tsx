@@ -119,8 +119,8 @@ function WalletContent() {
             </div>
           </div>
           {wallet?.accountNumber && (
-            <div className="flex items-center gap-1.5 mb-5">
-              <p className="text-white/50 text-[11px] font-mono tracking-[0.2em]">
+            <div className="flex items-center gap-2 mb-5">
+              <p className="text-white/70 text-sm font-semibold tracking-[0.18em]">
                 {wallet.accountNumber.replace(/(.{4})/g, "$1 ").trim()}
               </p>
               <CopyButton text={wallet.accountNumber} />
