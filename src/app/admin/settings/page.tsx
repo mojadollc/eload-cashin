@@ -7,12 +7,16 @@ import { Input } from "@/components/ui/input";
 import { CheckCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
 
 const PAYMONGO_FIELDS = [
-  { key: "PAYMONGO_SECRET_KEY", label: "PayMongo Secret Key", placeholder: "sk_live_..." },
-  { key: "PAYMONGO_WEBHOOK_SECRET", label: "PayMongo Webhook Secret", placeholder: "whsec_..." },
+  { key: "PAYMONGO_SECRET_KEY", label: "Secret Key", placeholder: "sk_live_..." },
+  { key: "PAYMONGO_PUBLIC_KEY", label: "Public Key", placeholder: "pk_live_..." },
+  { key: "PAYMONGO_WEBHOOK_SECRET", label: "Webhook Secret", placeholder: "whsec_..." },
 ];
 const GBITS_FIELDS = [
-  { key: "GBITS_API_URL", label: "GbitsAPI URL", placeholder: "https://api.gbits.com" },
-  { key: "GBITS_API_KEY", label: "GbitsAPI Key", placeholder: "your-gbits-key" },
+  { key: "GBITS_API_URL", label: "API URL", placeholder: "https://api.gbits.ph" },
+  { key: "GBITS_BUSINESS_ID", label: "Business ID", placeholder: "aab5db19-..." },
+  { key: "GBITS_BUSINESS_CODE", label: "Business Code", placeholder: "JLKJ" },
+  { key: "GBITS_USERNAME", label: "Username", placeholder: "your@email.com" },
+  { key: "GBITS_PASSWORD", label: "Password", placeholder: "your-password" },
 ];
 const FIREBASE_FIELDS = [
   { key: "FIREBASE_PROJECT_ID", label: "Project ID", placeholder: "your-project-id" },
@@ -112,7 +116,9 @@ export default function AdminSettingsPage() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-semibold">GbitsAPI</h2>
             <p className="text-xs text-gray-400">E-load provider for Globe, Smart, DITO, TM, TNT, Sun.</p>
-            {GBITS_FIELDS.map(renderField)}
+            <div className="grid grid-cols-1 gap-4">
+              {GBITS_FIELDS.map(renderField)}
+            </div>
           </CardContent>
         </Card>
 
