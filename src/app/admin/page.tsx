@@ -4,9 +4,9 @@ import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
-import { Users, TrendingUp, DollarSign, AlertCircle, Clock } from "lucide-react";
+import { Users, TrendingUp, DollarSign, AlertCircle, Clock, Smartphone, ArrowDownCircle, Wallet, ArrowRightLeft } from "lucide-react";
 
-const RANGES = ["today", "week", "month"];
+const RANGES = ["today", "week", "month", "year"];
 
 export default function AdminDashboard() {
   const api = useApi();
@@ -17,15 +17,60 @@ export default function AdminDashboard() {
   useEffect(() => {
     api.get(`/api/admin/reports?range=${range}`).then(setStats);
     api.get("/api/admin/transactions?limit=10").then(d => setRecentTxns(d?.transactions || []));
-  }, [range]);
+  }, [range]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpis = stats ? [
-    { label: "Total Users", value: stats.totalUsers?.toLocaleString(), icon: Users, color: "text-blue-600 bg-blue-50" },
-    { label: "Active Users", value: stats.activeUsers?.toLocaleString(), icon: Users, color: "text-green-600 bg-green-50" },
-    { label: "Volume", value: formatCurrency(stats.totalVolume || 0), icon: TrendingUp, color: "text-purple-600 bg-purple-50" },
-    { label: "Revenue", value: formatCurrency(stats.totalRevenue || 0), icon: DollarSign, color: "text-[#038E80] bg-[#038E80]/10" },
-    { label: "Pending", value: stats.pendingTxns?.toLocaleString(), icon: Clock, color: "text-yellow-600 bg-yellow-50" },
-    { label: "Failed", value: stats.failedTxns?.toLocaleString(), icon: AlertCircle, color: "text-red-600 bg-red-50" },
+    { label: "Total Users",    value: stats.totalUsers?.toLocaleString(),        icon: Users,           color: "text-blue-600 bg-blue-50" },
+    { label: "Active Users",   value: stats.activeUsers?.toLocaleString(),       icon: Users,           color: "text-green-600 bg-green-50" },
+    { label: "Total Volume",   value: formatCurrency(stats.totalVolume || 0),    icon: TrendingUp,      color: "text-purple-600 bg-purple-50" },
+    { label: "Net Revenue",    value: formatCurrency(stats.totalRevenue || 0),   icon: DollarSign,      color: "text-[#038E80] bg-[#038E80]/10" },
+    { label: "Pending",        value: stats.pendingTxns?.toLocaleString(),       icon: Clock,           color: "text-yellow-600 bg-yellow-50" },
+    { label: "Failed",         value: stats.failedTxns?.toLocaleString(),        icon: AlertCircle,     color: "text-red-600 bg-red-50" },
+  ] : [];
+
+  const serviceCards = stats ? [
+    {
+      label: "Wallet Funding",
+      icon: Wallet,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      count: stats.walletFundCount ?? 0,
+      volume: stats.walletFundVolume ?? 0,
+      revenue: stats.walletFundFee ?? 0,
+      providerCost: 0,
+    },
+    {
+      label: "E-Load",
+      icon: Smartphone,
+      color: "text-green-600",
+      bg: "bg-green-50",
+      count: stats.eloadCount ?? 0,
+      volume: stats.eloadVolume ?? 0,
+      revenue: stats.eloadFee ?? 0,
+      providerCost: 0,
+    },
+    {
+      label: "Cash Out",
+      icon: ArrowDownCircle,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      count: stats.cashoutCount ?? 0,
+      volume: stats.cashoutVolume ?? 0,
+      revenue: stats.cashoutRevenue ?? 0,
+      providerCost: stats.cashoutCount ? stats.cashoutCount * 10 : 0,
+      grossFee: stats.cashoutFee ?? 0,
+    },
+    {
+      label: "Transfers",
+      icon: ArrowRightLeft,
+      color: "text-teal-600",
+      bg: "bg-teal-50",
+      count: stats.transferCount ?? 0,
+      volume: 0,
+      revenue: 0,
+      providerCost: 0,
+      free: true,
+    },
   ] : [];
 
   return (
@@ -42,6 +87,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {kpis.map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
@@ -56,20 +102,53 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {stats?.revenueByType?.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {stats.revenueByType.map((r: any) => (
-            <Card key={r.type}>
-              <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-gray-400 uppercase tracking-wider">{r.type.replace("_", " ")} Revenue</p>
-                <p className="text-xl font-bold mt-1">{formatCurrency(r._sum?.feeAmount || 0)}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Volume: {formatCurrency(r._sum?.grossAmount || 0)}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Service Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+        {serviceCards.map(({ label, icon: Icon, color, bg, count, volume, revenue, providerCost, grossFee, free }) => (
+          <Card key={label}>
+            <CardContent className="pt-4 pb-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bg}`}>
+                  <Icon size={16} className={color} />
+                </div>
+                <p className="font-semibold text-sm text-gray-700">{label}</p>
+              </div>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Transactions</span>
+                  <span className="font-semibold">{count.toLocaleString()}</span>
+                </div>
+                {!free && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Volume</span>
+                    <span className="font-semibold">{formatCurrency(volume)}</span>
+                  </div>
+                )}
+                {providerCost > 0 && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Gross Fee</span>
+                      <span className="font-semibold">{formatCurrency(grossFee ?? 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Provider Cost</span>
+                      <span className="font-semibold text-red-500">-{formatCurrency(providerCost)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between border-t pt-1.5">
+                  <span className="font-semibold text-gray-600">Net Revenue</span>
+                  <span className={`font-bold ${free ? "text-gray-400" : "text-[#038E80]"}`}>
+                    {free ? "FREE" : formatCurrency(revenue)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
+      {/* Recent Transactions */}
       <Card>
         <CardContent className="pt-4">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Recent Transactions</h2>
@@ -77,7 +156,7 @@ export default function AdminDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-400 border-b">
-                  <th className="pb-2 font-medium">ID</th>
+                  <th className="pb-2 font-medium">Txn No.</th>
                   <th className="pb-2 font-medium">User</th>
                   <th className="pb-2 font-medium">Type</th>
                   <th className="pb-2 font-medium">Amount</th>
@@ -90,7 +169,7 @@ export default function AdminDashboard() {
                   <tr key={txn.id}>
                     <td className="py-2.5 font-mono text-xs text-gray-500">{txn.transactionNumber}</td>
                     <td className="py-2.5">{txn.user?.firstName} {txn.user?.lastName}</td>
-                    <td className="py-2.5 text-xs">{txn.type.replace("_", " ")}</td>
+                    <td className="py-2.5 text-xs">{txn.type.replace(/_/g, " ")}</td>
                     <td className="py-2.5 font-medium">{formatCurrency(txn.grossAmount)}</td>
                     <td className="py-2.5 text-gray-500">{formatCurrency(txn.feeAmount)}</td>
                     <td className="py-2.5"><Badge status={txn.status} /></td>

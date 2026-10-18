@@ -3,41 +3,91 @@ import { prisma } from "@/lib/database/prisma";
 import { requireAuth, ADMIN_ROLES } from "@/lib/auth/middleware";
 import { JwtPayload } from "@/lib/auth/jwt";
 
+const PAYMONGO_DISBURSEMENT_FEE = 10;
+
 export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) => {
   const { searchParams } = new URL(req.url);
   const range = searchParams.get("range") || "today";
   const now = new Date();
-  const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const from =
-    range === "today" ? startOf(now) :
-    range === "week" ? new Date(now.getTime() - 7 * 86400000) :
+    range === "today" ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) :
+    range === "week"  ? new Date(now.getTime() - 7 * 86400000) :
     range === "month" ? new Date(now.getFullYear(), now.getMonth(), 1) :
-    new Date(searchParams.get("from") || now);
+    new Date(now.getFullYear(), 0, 1);
 
-  const [totalUsers, activeUsers, pendingTxns, failedTxns, volumeData, revenueData] = await Promise.all([
+  const [
+    totalUsers,
+    activeUsers,
+    pendingTxns,
+    failedTxns,
+    byType,
+    transferCount,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { status: "ACTIVE" } }),
     prisma.transaction.count({ where: { status: "PENDING" } }),
     prisma.transaction.count({ where: { status: "FAILED", createdAt: { gte: from } } }),
-    prisma.transaction.aggregate({
-      where: { status: "SUCCESS", createdAt: { gte: from } },
-      _sum: { grossAmount: true, netAmount: true },
-      _count: true,
-    }),
     prisma.transaction.groupBy({
       by: ["type"],
       where: { status: "SUCCESS", createdAt: { gte: from } },
       _sum: { feeAmount: true, grossAmount: true },
+      _count: { id: true },
+    }),
+    // Free wallet-to-wallet transfers (CASHIN_TAP channel)
+    prisma.cashoutTransaction.count({
+      where: { channel: "CASHIN_TAP", transaction: { status: "SUCCESS", createdAt: { gte: from } } },
     }),
   ]);
 
-  const totalRevenue = revenueData.reduce((sum: number, r: any) => sum + Number(r._sum?.feeAmount || 0), 0);
+  // Build per-type breakdown
+  const typeMap: Record<string, { volume: number; fee: number; count: number }> = {};
+  for (const r of byType) {
+    typeMap[r.type] = {
+      volume: Number(r._sum?.grossAmount || 0),
+      fee: Number(r._sum?.feeAmount || 0),
+      count: r._count.id,
+    };
+  }
+
+  const walletFundVolume  = typeMap["WALLET_FUND"]?.volume ?? 0;
+  const walletFundFee     = typeMap["WALLET_FUND"]?.fee ?? 0;
+  const walletFundCount   = typeMap["WALLET_FUND"]?.count ?? 0;
+
+  const eloadVolume       = typeMap["ELOAD"]?.volume ?? 0;
+  const eloadFee          = typeMap["ELOAD"]?.fee ?? 0;
+  const eloadCount        = typeMap["ELOAD"]?.count ?? 0;
+
+  const cashoutVolume     = typeMap["CASHOUT"]?.volume ?? 0;
+  const cashoutFee        = typeMap["CASHOUT"]?.fee ?? 0;
+  const cashoutCount      = (typeMap["CASHOUT"]?.count ?? 0) - transferCount; // exclude free transfers
+  const cashoutRevenue    = Math.max(0, cashoutFee - (cashoutCount * PAYMONGO_DISBURSEMENT_FEE));
+
+  const totalVolume       = walletFundVolume + eloadVolume + cashoutVolume;
+  const totalTransactions = walletFundCount + eloadCount + cashoutCount + transferCount;
+
+  // Revenue = what we actually earn (after provider costs)
+  const totalRevenue = walletFundFee + eloadFee + cashoutRevenue;
+
+  const revenueByType = [
+    { type: "WALLET_FUND", volume: walletFundVolume, fee: walletFundFee, revenue: walletFundFee, count: walletFundCount },
+    { type: "ELOAD",       volume: eloadVolume,      fee: eloadFee,      revenue: eloadFee,      count: eloadCount },
+    { type: "CASHOUT",     volume: cashoutVolume,    fee: cashoutFee,    revenue: cashoutRevenue, count: cashoutCount,
+      providerCost: cashoutCount * PAYMONGO_DISBURSEMENT_FEE },
+    { type: "TRANSFER",    volume: typeMap["CASHOUT"]?.volume ? 0 : 0, fee: 0, revenue: 0, count: transferCount },
+  ].filter(r => r.count > 0 || r.type === "WALLET_FUND");
 
   return NextResponse.json({
-    totalUsers, activeUsers, pendingTxns, failedTxns,
-    totalVolume: volumeData._sum.grossAmount || 0,
-    totalTransactions: volumeData._count,
-    revenueByType: revenueData,
+    totalUsers,
+    activeUsers,
+    pendingTxns,
+    failedTxns,
+    totalVolume,
+    totalTransactions,
     totalRevenue,
+    walletFundVolume, walletFundFee, walletFundCount,
+    eloadVolume, eloadFee, eloadCount,
+    cashoutVolume, cashoutFee, cashoutRevenue, cashoutCount,
+    transferCount,
+    revenueByType,
   });
 }, ADMIN_ROLES);
