@@ -119,6 +119,9 @@ model User {
   notifications   Notification[]
   auditLogs       AuditLog[]
   cashoutDestinations CashoutDestination[]
+  deviceTokens    DeviceToken[]
+  kycDocuments    KycDocument[]
+  pin             UserPin?
 
   @@index([mobile, email])
 }
@@ -397,4 +400,42 @@ model SystemSetting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model KycDocument {
+  id         String    @id @default(cuid())
+  userId     String
+  docType    String
+  fileUrl    String
+  status     String    @default("PENDING")
+  reviewNote String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model UserPin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  pinHash   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
 }
