@@ -16,6 +16,8 @@ const schema = z.object({
   rate: z.number().optional(),
   minimum: z.number().optional(),
   maximum: z.number().optional(),
+  minAmount: z.number().optional(),
+  maxAmount: z.number().optional(),
   userTier: z.string().optional(),
 });
 
