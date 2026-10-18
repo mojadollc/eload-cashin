@@ -20,8 +20,8 @@ export async function calculateFee(service: FeeService, amount: number, userTier
   let totalFee = new Decimal(0);
 
   for (const rule of applicable) {
-    if (rule.minAmount && amount < Number(rule.minAmount)) continue;
-    if (rule.maxAmount && amount > Number(rule.maxAmount)) continue;
+    if (rule.minAmount !== null && amount < Number(rule.minAmount.toString())) continue;
+    if (rule.maxAmount !== null && amount > Number(rule.maxAmount.toString())) continue;
 
     let fee = new Decimal(0);
     if (rule.feeType === FeeType.FIXED && rule.amount) {
