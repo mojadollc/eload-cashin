@@ -210,6 +210,33 @@ export async function purchaseLoad(params: PurchaseLoadParams) {
   throw new Error(result.content?.description || result.message || `GBits error ${result.errorCode}`);
 }
 
+export async function getGbitsBalance(): Promise<{ balance: number; currency: string } | null> {
+  try {
+    const data = await gbitsGet("/balance");
+    if (data.errorCode !== 0) return null;
+    return {
+      balance: Number(data.content?.balance ?? data.content?.availableBalance ?? 0),
+      currency: data.content?.currency || "PHP",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function getGbitsTransactions(page = 1, limit = 10): Promise<{ transactions: any[]; total: number } | null> {
+  try {
+    const data = await gbitsGet(`/eload/transactions/${GBITS_BUSINESS_ID}?page=${page}&limit=${limit}`);
+    if (data.errorCode !== 0) return null;
+    const list = data.content?.transactions || data.content?.data || data.content || [];
+    return {
+      transactions: Array.isArray(list) ? list : [],
+      total: data.content?.total || data.content?.totalCount || list.length,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function checkTransaction(reference: string) {
   const data = await gbitsGet(`/eload/status/${reference}`);
   const raw = (data.content?.status || "").toLowerCase();

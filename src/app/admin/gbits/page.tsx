@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { useApi } from "@/components/shared/use-api";
-import { RefreshCw, Wifi, WifiOff, Search, CheckCircle, XCircle, Activity } from "lucide-react";
+import { RefreshCw, Wifi, WifiOff, Search, CheckCircle, XCircle, Activity, ArrowDownLeft, Clock } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface Sku {
@@ -54,6 +54,10 @@ export default function AdminGbitsPage() {
   const [skus, setSkus] = useState<Sku[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [byNetwork, setByNetwork] = useState<NetworkStat[]>([]);
+  const [recentTxns, setRecentTxns] = useState<any[]>([]);
+  const [txnPage, setTxnPage] = useState(1);
+  const [txnTotal, setTxnTotal] = useState(0);
+  const [txnLoading, setTxnLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -71,7 +75,16 @@ export default function AdminGbitsPage() {
     setSkus(data?.skus || []);
     setStats(data?.stats || null);
     setByNetwork(data?.byNetwork || []);
+    setRecentTxns(data?.recentTransactions || []);
     setLoading(false);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchTxns = useCallback(async (p: number) => {
+    setTxnLoading(true);
+    const data = await api.get(`/api/admin/gbits?view=transactions&page=${p}`);
+    setRecentTxns(data?.transactions || []);
+    setTxnTotal(data?.total || 0);
+    setTxnLoading(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { fetchSkus(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -218,6 +231,88 @@ export default function AdminGbitsPage() {
           </div>
         </div>
       )}
+
+      {/* Recent GBits Transactions */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <ArrowDownLeft size={15} className="text-[#038E80]" /> GBits Transactions
+          </p>
+          <div className="flex items-center gap-2">
+            {txnPage > 1 && (
+              <button onClick={() => { setTxnPage(p => p - 1); fetchTxns(txnPage - 1); }}
+                className="text-xs px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 font-semibold">← Prev</button>
+            )}
+            {recentTxns.length === 20 && (
+              <button onClick={() => { setTxnPage(p => p + 1); fetchTxns(txnPage + 1); }}
+                className="text-xs px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 font-semibold">Next →</button>
+            )}
+            <button onClick={() => fetchTxns(txnPage)} disabled={txnLoading}
+              className="text-xs px-3 py-1.5 rounded-xl bg-[#038E80]/10 text-[#038E80] font-semibold flex items-center gap-1">
+              <RefreshCw size={11} className={txnLoading ? "animate-spin" : ""} /> Refresh
+            </button>
+          </div>
+        </div>
+        {recentTxns.length === 0 ? (
+          <div className="px-5 py-10 text-center text-sm text-gray-400">
+            {txnLoading ? "Loading..." : "No transactions returned from GBits API"}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 border-b bg-gray-50">
+                  <th className="px-4 py-2.5 font-semibold">Transaction ID</th>
+                  <th className="px-4 py-2.5 font-semibold">Mobile</th>
+                  <th className="px-4 py-2.5 font-semibold">Network</th>
+                  <th className="px-4 py-2.5 font-semibold">Amount</th>
+                  <th className="px-4 py-2.5 font-semibold">Status</th>
+                  <th className="px-4 py-2.5 font-semibold">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {recentTxns.map((t: any, i: number) => {
+                  const status = (t.status || t.transactionStatus || "").toLowerCase();
+                  const isSuccess = ["success", "completed", "successful"].includes(status);
+                  const isFailed = ["failed", "failure", "cancelled", "rejected"].includes(status);
+                  return (
+                    <tr key={t.transactionId || t.id || i} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{t.transactionId || t.id || "—"}</td>
+                      <td className="px-4 py-3 font-medium">{t.address || t.mobileNumber || t.mobile || "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-semibold">
+                          {t.serviceGroup || t.network || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-bold">₱{t.amount || "—"}</td>
+                      <td className="px-4 py-3">
+                        {isSuccess ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-semibold">
+                            <CheckCircle size={11} /> {t.status || "Success"}
+                          </span>
+                        ) : isFailed ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold">
+                            <XCircle size={11} /> {t.status || "Failed"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-50 text-yellow-700 text-xs font-semibold">
+                            <Clock size={11} /> {t.status || "Pending"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-400">
+                        {t.createdAt || t.transactionDate || t.date
+                          ? new Date(t.createdAt || t.transactionDate || t.date).toLocaleString("en-PH")
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* SKU Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
