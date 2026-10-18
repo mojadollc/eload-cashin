@@ -212,6 +212,7 @@ export default function TransactionsPage() {
               {transactions.map((txn: any) => {
                 const isCredit = txn.type === "WALLET_FUND" || txn.type === "REFUND";
                 const detail = txn.eloadTxn?.network || txn.cashoutTxn?.channel || txn.fundingTxn?.paymentMethod || txn.provider || "";
+                const subDetail = txn.eloadTxn?.mobileNumber || txn.cashoutTxn?.accountNumber || "";
                 return (
                   <div key={txn.id} className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -221,6 +222,7 @@ export default function TransactionsPage() {
                       <div>
                         <p className="text-sm font-semibold text-gray-800">{txn.type.replace(/_/g, " ")}</p>
                         {detail && <p className="text-[11px] text-gray-500 font-medium">{detail}</p>}
+                        {subDetail && <p className="text-[11px] text-gray-500 font-mono">{subDetail}</p>}
                         <p className="text-[11px] text-gray-400 font-mono">{txn.transactionNumber}</p>
                         <p className="text-[11px] text-gray-400">{formatDate(txn.createdAt)}</p>
                       </div>
