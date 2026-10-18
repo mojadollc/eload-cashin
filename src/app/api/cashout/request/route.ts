@@ -21,7 +21,8 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   const { amount, channel, accountNumber, accountName } = parsed.data;
   try {
     const transaction = await initiateCashout(payload.userId, amount, channel, accountNumber, accountName);
-    const fee = await calculateFee(FeeService.CASHOUT, amount);
+    const markupFee = await calculateFee(FeeService.CASHOUT, amount);
+    const fee = markupFee + 10;
     return NextResponse.json({ transactionNumber: transaction.transactionNumber, status: transaction.status, fee, totalDeducted: amount + fee });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });

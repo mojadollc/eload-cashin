@@ -36,7 +36,7 @@ export default function CashoutPage() {
   useEffect(() => {
     if (!amount) return;
     api.get(`/api/fees?service=CASHOUT&amount=${amount}`).then(d => {
-      if (d?.fee !== undefined) setFee(d.fee);
+      if (d?.fee !== undefined) setFee(d.fee + 10);
     });
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 

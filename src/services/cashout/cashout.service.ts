@@ -6,9 +6,12 @@ import { calculateFee } from "@/services/fees/fee.service";
 import { createPayMongoDisbursement } from "@/providers/paymongo/paymongo.provider";
 import { cashoutQueue } from "@/workers/queues";
 
+const PAYMONGO_DISBURSEMENT_FEE = 10;
+
 export async function initiateCashout(userId: string, amount: number, channel: string, accountNumber: string, accountName: string) {
   const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
-  const fee = await calculateFee(FeeService.CASHOUT, amount);
+  const markupFee = await calculateFee(FeeService.CASHOUT, amount);
+  const fee = markupFee + PAYMONGO_DISBURSEMENT_FEE;
   const totalDeduction = amount + fee;
 
   const provider = Provider.PAYMONGO;
