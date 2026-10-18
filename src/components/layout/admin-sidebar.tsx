@@ -24,7 +24,7 @@ export function AdminSidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="flex flex-col w-64 bg-[#17202A] min-h-screen">
+    <aside className="flex flex-col w-64 bg-[#17202A] h-screen sticky top-0 shrink-0">
       <div className="px-6 py-5 border-b border-white/10">
         <div className="flex items-center gap-2">
           <Shield size={20} className="text-[#038E80]" />
@@ -32,7 +32,7 @@ export function AdminSidebar() {
         </div>
         <span className="text-xs text-gray-400 mt-0.5 block">Admin Panel</span>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, icon: Icon, label }) => (
           <Link key={href} href={href} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all", pathname === href ? "bg-[#038E80] text-white" : "text-gray-400 hover:bg-white/5 hover:text-white")}>
             <Icon size={17} />
