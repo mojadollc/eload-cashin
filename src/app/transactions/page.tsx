@@ -2,36 +2,36 @@
 import { useEffect, useState, useCallback } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Filter, X } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, Filter, X,
+  Smartphone, SendHorizonal, Wallet, RotateCcw, Receipt, RefreshCw,
+} from "lucide-react";
 
-const TYPES = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
-const STATUSES = ["All", "SUCCESS", "PENDING", "FAILED", "CANCELLED"];
-const txIcon: Record<string, string> = { ELOAD: "📱", WALLET_FUND: "💰", CASHOUT: "💸", REFUND: "↩️", REVERSAL: "🔄" };
-
-const STATUS_STYLES: Record<string, string> = {
-  SUCCESS:    "bg-green-100 text-green-700",
-  PENDING:    "bg-yellow-100 text-yellow-700",
-  PROCESSING: "bg-blue-100 text-blue-700",
-  FAILED:     "bg-red-100 text-red-700",
-  CANCELLED:  "bg-gray-100 text-gray-500",
-  REVERSED:   "bg-orange-100 text-orange-700",
-  REFUNDED:   "bg-purple-100 text-purple-700",
+const TX_META: Record<string, { icon: React.ElementType; color: string; bg: string; label: string }> = {
+  ELOAD:       { icon: Smartphone,    color: "text-blue-600",   bg: "bg-blue-50",   label: "E-Load" },
+  WALLET_FUND: { icon: Wallet,        color: "text-green-600",  bg: "bg-green-50",  label: "Wallet Fund" },
+  CASHOUT:     { icon: SendHorizonal, color: "text-purple-600", bg: "bg-purple-50", label: "Send Money" },
+  REFUND:      { icon: RotateCcw,     color: "text-teal-600",   bg: "bg-teal-50",   label: "Refund" },
+  REVERSAL:    { icon: RefreshCw,     color: "text-orange-600", bg: "bg-orange-50", label: "Reversal" },
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  SUCCESS:    "✅ Success",
-  PENDING:    "⏳ Pending",
-  PROCESSING: "🔄 Processing",
-  FAILED:     "❌ Failed",
-  CANCELLED:  "🚫 Cancelled",
-  REVERSED:   "↩️ Reversed",
-  REFUNDED:   "💜 Refunded",
+const TYPES    = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
+const STATUSES = ["All", "SUCCESS", "PENDING", "FAILED", "CANCELLED"];
+
+const STATUS_STYLES: Record<string, string> = {
+  SUCCESS:    "bg-green-50 text-green-700",
+  PENDING:    "bg-yellow-50 text-yellow-700",
+  PROCESSING: "bg-blue-50 text-blue-700",
+  FAILED:     "bg-red-50 text-red-500",
+  CANCELLED:  "bg-gray-100 text-gray-500",
+  REVERSED:   "bg-orange-50 text-orange-700",
+  REFUNDED:   "bg-purple-50 text-purple-700",
 };
 
 function StatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_STYLES[status] || "bg-gray-100 text-gray-500"}`}>
-      {STATUS_LABEL[status] || status}
+      {status}
     </span>
   );
 }
@@ -40,7 +40,7 @@ function SkeletonRow() {
   return (
     <div className="flex items-center justify-between py-3 border-b border-gray-50">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+        <div className="w-10 h-10 rounded-2xl bg-gray-200 animate-pulse" />
         <div className="space-y-1.5">
           <div className="h-3 w-24 bg-gray-200 rounded-full animate-pulse" />
           <div className="h-2.5 w-32 bg-gray-200 rounded-full animate-pulse" />
@@ -85,11 +85,7 @@ export default function TransactionsPage() {
   useEffect(() => { fetchTransactions(page); }, [type, status, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const applyDateFilter = () => { setPage(1); fetchTransactions(1); setShowFilter(false); };
-
-  const clearFilters = () => {
-    setType("All"); setStatus("All"); setDateFrom(""); setDateTo(""); setPage(1);
-  };
-
+  const clearFilters = () => { setType("All"); setStatus("All"); setDateFrom(""); setDateTo(""); setPage(1); };
   const hasActiveFilter = type !== "All" || status !== "All" || dateFrom || dateTo;
 
   return (
@@ -108,11 +104,10 @@ export default function TransactionsPage() {
         <p className="text-white/60 text-sm mt-1">{total} transaction{total !== 1 ? "s" : ""}</p>
       </div>
 
-      <div className="px-4 -mt-10 pb-8 space-y-4">
+      <div className="px-4 -mt-10 pb-28 lg:pb-8 space-y-4">
         {/* Filter panel */}
         {showFilter && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-            {/* Date range */}
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Date Range</p>
               <div className="grid grid-cols-2 gap-2">
@@ -128,20 +123,12 @@ export default function TransactionsPage() {
                 </div>
               </div>
             </div>
-
-            {/* Quick date presets */}
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Quick Select</p>
               <div className="flex gap-2 flex-wrap">
-                {[
-                  { label: "Today", days: 0 },
-                  { label: "Last 7 days", days: 7 },
-                  { label: "Last 30 days", days: 30 },
-                  { label: "Last 90 days", days: 90 },
-                ].map(({ label, days }) => (
+                {[{ label: "Today", days: 0 }, { label: "Last 7 days", days: 7 }, { label: "Last 30 days", days: 30 }, { label: "Last 90 days", days: 90 }].map(({ label, days }) => (
                   <button key={label} onClick={() => {
-                    const to = new Date();
-                    const from = new Date();
+                    const to = new Date(); const from = new Date();
                     from.setDate(from.getDate() - days);
                     setDateFrom(from.toISOString().slice(0, 10));
                     setDateTo(to.toISOString().slice(0, 10));
@@ -151,7 +138,6 @@ export default function TransactionsPage() {
                 ))}
               </div>
             </div>
-
             <div className="flex gap-2">
               <button onClick={clearFilters} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-500 flex items-center justify-center gap-1">
                 <X size={14} /> Clear
@@ -183,12 +169,10 @@ export default function TransactionsPage() {
           ))}
         </div>
 
-        {/* Active date filter badge */}
+        {/* Active date badge */}
         {(dateFrom || dateTo) && (
           <div className="flex items-center gap-2 bg-[#038E80]/10 rounded-xl px-3 py-2">
-            <span className="text-xs font-semibold text-[#038E80]">
-              📅 {dateFrom || "—"} → {dateTo || "—"}
-            </span>
+            <span className="text-xs font-semibold text-[#038E80]">📅 {dateFrom || "—"} → {dateTo || "—"}</span>
             <button onClick={() => { setDateFrom(""); setDateTo(""); setPage(1); fetchTransactions(1); }} className="ml-auto">
               <X size={14} className="text-[#038E80]" />
             </button>
@@ -203,24 +187,28 @@ export default function TransactionsPage() {
             </div>
           ) : transactions.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-4xl mb-3">📭</p>
+              <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                <Receipt size={24} className="text-gray-300" />
+              </div>
               <p className="text-sm font-semibold text-gray-500">No transactions found</p>
               <p className="text-xs text-gray-400 mt-1">Try adjusting your filters</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
               {transactions.map((txn: any) => {
+                const meta = TX_META[txn.type] || { icon: Receipt, color: "text-gray-500", bg: "bg-gray-100", label: txn.type.replace(/_/g, " ") };
+                const Icon = meta.icon;
                 const isCredit = txn.type === "WALLET_FUND" || txn.type === "REFUND";
-                const detail = txn.eloadTxn?.network || txn.cashoutTxn?.channel || txn.fundingTxn?.paymentMethod || txn.provider || "";
+                const detail = txn.eloadTxn?.network || txn.cashoutTxn?.channel || txn.fundingTxn?.paymentMethod || "";
                 const subDetail = txn.eloadTxn?.mobileNumber || txn.cashoutTxn?.accountNumber || "";
                 return (
-                  <div key={txn.id} className="flex items-center justify-between px-4 py-3">
+                  <div key={txn.id} className="flex items-center justify-between px-4 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-xl shrink-0">
-                        {txIcon[txn.type] || "💳"}
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${meta.bg}`}>
+                        <Icon size={18} className={meta.color} strokeWidth={2} />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-800">{txn.type.replace(/_/g, " ")}</p>
+                        <p className="text-sm font-semibold text-gray-800">{meta.label}</p>
                         {detail && <p className="text-[11px] text-gray-500 font-medium">{detail}</p>}
                         {subDetail && <p className="text-[11px] text-gray-500 font-mono">{subDetail}</p>}
                         <p className="text-[11px] text-gray-400 font-mono">{txn.transactionNumber}</p>
@@ -228,7 +216,7 @@ export default function TransactionsPage() {
                       </div>
                     </div>
                     <div className="text-right space-y-1 shrink-0">
-                      <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-red-500"}`}>
+                      <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-gray-800"}`}>
                         {isCredit ? "+" : "-"}{formatCurrency(txn.grossAmount)}
                       </p>
                       <StatusBadge status={txn.status} />
@@ -239,11 +227,10 @@ export default function TransactionsPage() {
             </div>
           )}
 
-          {/* Pagination */}
           {!loading && pages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed bg-gray-100 text-gray-600">
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-40 bg-gray-100 text-gray-600">
                 <ChevronLeft size={16} /> Prev
               </button>
               <div className="flex items-center gap-1">
@@ -258,12 +245,11 @@ export default function TransactionsPage() {
                 })}
               </div>
               <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed bg-gray-100 text-gray-600">
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-semibold disabled:opacity-40 bg-gray-100 text-gray-600">
                 Next <ChevronRight size={16} />
               </button>
             </div>
           )}
-
           {!loading && (
             <p className="text-xs text-gray-400 text-center py-2">
               Showing {Math.min((page - 1) * 15 + 1, total)}–{Math.min(page * 15, total)} of {total}

@@ -3,11 +3,27 @@ import { useAuth } from "@/components/shared/auth-context";
 import { useApi } from "@/components/shared/use-api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import { User, Phone, Mail, LogOut, ChevronRight, ChevronLeft, Shield, Bell, FileText, X, Calendar, Wallet } from "lucide-react";
+import { User, Phone, Mail, LogOut, ChevronRight, ChevronLeft, Shield, Bell, FileText, X, Calendar, Wallet, Copy, Check, Smartphone, SendHorizonal, RotateCcw, RefreshCw, Receipt } from "lucide-react";
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  return (
+    <button onClick={copy} className="text-white/60 hover:text-white transition-colors">
+      {copied ? <Check size={14} className="text-green-300" /> : <Copy size={14} />}
+    </button>
+  );
+}
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-const txIcon: Record<string, string> = { ELOAD: "📱", WALLET_FUND: "💰", CASHOUT: "💸", REFUND: "↩️", REVERSAL: "🔄" };
+const TX_META: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+  ELOAD:       { icon: Smartphone,    color: "text-blue-600",   bg: "bg-blue-50" },
+  WALLET_FUND: { icon: Wallet,        color: "text-green-600",  bg: "bg-green-50" },
+  CASHOUT:     { icon: SendHorizonal, color: "text-purple-600", bg: "bg-purple-50" },
+  REFUND:      { icon: RotateCcw,     color: "text-teal-600",   bg: "bg-teal-50" },
+  REVERSAL:    { icon: RefreshCw,     color: "text-orange-600", bg: "bg-orange-50" },
+};
 
 function SkeletonRow() {
   return (
@@ -103,6 +119,7 @@ export default function ProfilePage() {
                       : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     }
                   </button>
+                  {showCardNumber && <CopyButton text={wallet.accountNumber} />}
                 </div>
               </div>
               <div className="flex items-end justify-between">
@@ -254,11 +271,15 @@ export default function ProfilePage() {
                   <p className="text-3xl mb-2">📭</p>
                   <p className="text-sm text-gray-400">No transactions found</p>
                 </div>
-              ) : transactions.map((txn: any) => (
+              ) : transactions.map((txn: any) => {
+                const meta = TX_META[txn.type] || { icon: Receipt, color: "text-gray-500", bg: "bg-gray-100" };
+                const Icon = meta.icon;
+                const isCredit = txn.type === "WALLET_FUND" || txn.type === "REFUND";
+                return (
                 <div key={txn.id} className="flex items-center justify-between py-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-lg shrink-0">
-                      {txIcon[txn.type] || "💳"}
+                    <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 ${meta.bg}`}>
+                      <Icon size={16} className={meta.color} strokeWidth={2} />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{txn.type.replace(/_/g, " ")}</p>
@@ -266,13 +287,14 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   <div className="text-right space-y-0.5 shrink-0">
-                    <p className={`text-sm font-bold ${txn.type === "WALLET_FUND" || txn.type === "REFUND" ? "text-green-600" : "text-red-500"}`}>
-                      {txn.type === "WALLET_FUND" || txn.type === "REFUND" ? "+" : "-"}{formatCurrency(txn.grossAmount)}
+                    <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-gray-800"}`}>
+                      {isCredit ? "+" : "-"}{formatCurrency(txn.grossAmount)}
                     </p>
                     <Badge status={txn.status} />
                   </div>
                 </div>
-              ))}
+                );
+              })}}
             </div>
 
             {/* Pagination */}

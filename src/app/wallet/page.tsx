@@ -7,7 +7,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Plus, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Plus, ArrowUpRight, ArrowDownLeft, Copy, Check, Smartphone, SendHorizonal, Wallet, RotateCcw, Receipt } from "lucide-react";
+
+const TX_ICON: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+  ELOAD:       { icon: Smartphone,    color: "text-blue-600",   bg: "bg-blue-50" },
+  WALLET_FUND: { icon: ArrowDownLeft, color: "text-green-600",  bg: "bg-green-50" },
+  CASHOUT:     { icon: SendHorizonal, color: "text-purple-600", bg: "bg-purple-50" },
+  REFUND:      { icon: RotateCcw,     color: "text-teal-600",   bg: "bg-teal-50" },
+};
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  return (
+    <button onClick={copy} className="text-white/60 hover:text-white transition-colors">
+      {copied ? <Check size={14} className="text-green-300" /> : <Copy size={14} />}
+    </button>
+  );
+}
 
 const FILTERS = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
 
@@ -84,7 +101,10 @@ function WalletContent() {
             </Button>
           </Link>
         </div>
-        <div className="mt-3 text-white/50 text-xs">Account No: {wallet?.accountNumber}</div>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-white/50 text-xs">Account No: {wallet?.accountNumber}</span>
+          {wallet?.accountNumber && <CopyButton text={wallet.accountNumber} />}
+        </div>
       </div>
 
       <Card>
@@ -101,22 +121,27 @@ function WalletContent() {
             <p className="text-sm text-gray-400 text-center py-6">No transactions yet</p>
           ) : (
             <div className="space-y-3">
-              {entries.map((e: any) => (
-                <div key={e.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+              {entries.map((e: any) => {
+                const txType = e.description?.includes("E-Load") ? "ELOAD" : e.description?.includes("Cashout") || e.description?.includes("Send") ? "CASHOUT" : e.description?.includes("Refund") ? "REFUND" : e.entryType === "CREDIT" ? "WALLET_FUND" : "CASHOUT";
+                const meta = TX_ICON[txType] || (e.entryType === "CREDIT" ? TX_ICON.WALLET_FUND : TX_ICON.CASHOUT);
+                const Icon = meta.icon;
+                return (
+                <div key={e.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                   <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${e.entryType === "CREDIT" ? "bg-green-100" : "bg-red-100"}`}>
-                      {e.entryType === "CREDIT" ? <ArrowDownLeft size={16} className="text-green-600" /> : <ArrowUpRight size={16} className="text-red-500" />}
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${meta.bg}`}>
+                      <Icon size={17} className={meta.color} strokeWidth={2} />
                     </div>
                     <div>
                       <p className="text-sm font-medium">{e.description || "Transaction"}</p>
                       <p className="text-xs text-gray-400">{formatDate(e.createdAt)}</p>
                     </div>
                   </div>
-                  <p className={`text-sm font-semibold ${e.entryType === "CREDIT" ? "text-green-600" : "text-red-500"}`}>
+                  <p className={`text-sm font-semibold ${e.entryType === "CREDIT" ? "text-green-600" : "text-gray-800"}`}>
                     {e.entryType === "CREDIT" ? "+" : "-"}{formatCurrency(e.amount)}
                   </p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
