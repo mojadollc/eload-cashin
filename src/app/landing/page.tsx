@@ -188,29 +188,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-16">
-          <p className="text-[#038E80] font-semibold text-sm uppercase tracking-wider mb-3">Pricing</p>
-          <h2 className="text-4xl font-extrabold">Simple, transparent fees</h2>
-          <p className="text-gray-500 mt-4">No hidden charges. No surprises.</p>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-          {[
-            { service: "Wallet Funding", fee: "₱15", desc: "Per top-up transaction", icon: "💰" },
-            { service: "E-Load", fee: "₱2", desc: "Per load purchase", icon: "📱" },
-            { service: "Cash Out", fee: "₱15", desc: "Per disbursement", icon: "💸" },
-          ].map(({ service, fee, desc, icon }) => (
-            <div key={service} className="bg-white border-2 border-gray-100 rounded-2xl p-8 text-center hover:border-[#038E80]/30 hover:shadow-lg transition-all">
-              <span className="text-4xl">{icon}</span>
-              <h3 className="font-bold text-lg mt-4 mb-1">{service}</h3>
-              <p className="text-4xl font-extrabold text-[#038E80] my-3">{fee}</p>
-              <p className="text-gray-400 text-sm">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Testimonials */}
       <section className="py-24 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -271,7 +248,7 @@ export default function LandingPage() {
               <p className="text-sm leading-relaxed">Your trusted digital wallet for e-load, cash out, and more.</p>
             </div>
             {[
-              { title: "Product", links: ["Features", "Pricing", "Security"] },
+              { title: "Product", links: ["Features", "Security"] },
               { title: "Company", links: ["About", "Blog", "Careers"] },
               { title: "Support", links: ["Help Center", "Contact", "Privacy Policy"] },
             ].map(({ title, links }) => (
