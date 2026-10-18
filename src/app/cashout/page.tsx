@@ -297,7 +297,7 @@ export default function CashoutPage() {
                   ))}
                 </div>
                 <input type="number" placeholder="Enter amount" value={amount}
-                  onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))} min={100}
+                  onChange={e => setAmount(e.target.value === "" ? "" : Number(e.target.value))} min={5}
                   className="w-full text-2xl font-extrabold border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#038E80]" />
               </div>
 
@@ -314,7 +314,7 @@ export default function CashoutPage() {
               )}
 
               <button
-                disabled={!accountNumber || !accountName || !amount || Number(amount) < 100}
+                disabled={!accountNumber || !accountName || !amount || Number(amount) < 5}
                 onClick={() => setStep("confirm")}
                 className="w-full py-4 rounded-2xl text-white font-extrabold text-lg shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 style={{ backgroundColor: channelColor }}>

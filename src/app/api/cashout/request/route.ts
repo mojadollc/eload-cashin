@@ -7,7 +7,7 @@ import { calculateFee } from "@/services/fees/fee.service";
 import { FeeService } from "@/types/enums";
 
 const schema = z.object({
-  amount: z.number().min(100),
+  amount: z.number().min(5),
   channel: z.string(),
   accountNumber: z.string(),
   accountName: z.string(),
