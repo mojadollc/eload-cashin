@@ -160,7 +160,7 @@ export default function CashoutPage() {
             <div className="flex justify-between"><span className="text-sm text-gray-400">Account No.</span><span className="font-bold text-gray-800 tracking-widest">{accountNumber}</span></div>
             {accountName && <div className="flex justify-between"><span className="text-sm text-gray-400">Account Name</span><span className="font-bold text-gray-800">{accountName}</span></div>}
             <div className="flex justify-between"><span className="text-sm text-gray-400">Amount</span><span className="font-bold">{formatCurrency(Number(amount))}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-gray-400">Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">CashIn-Tap Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
             <div className="flex justify-between border-t pt-3">
               <span className="font-bold">Total Deducted</span>
               <span className="font-black text-base text-red-500">{formatCurrency(Number(amount) + fee)}</span>
@@ -305,7 +305,7 @@ export default function CashoutPage() {
               {amount !== "" && amount > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm p-4 space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold">{formatCurrency(amount)}</span></div>
-                  <div className="flex justify-between"><span className="text-gray-500">Service Fee</span><span className="font-semibold">{formatCurrency(fee)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">CashIn-Tap Service Fee</span><span className="font-semibold">{formatCurrency(fee)}</span></div>
                   <div className="flex justify-between border-t pt-2">
                     <span className="font-bold">Total Deducted</span>
                     <span className="font-black text-red-500">{formatCurrency(amount + fee)}</span>

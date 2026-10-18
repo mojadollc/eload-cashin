@@ -87,7 +87,7 @@ export default function FundWalletPage() {
 
           <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-medium">{formatCurrency(amount)}</span></div>
-            {fee > 0 && <div className="flex justify-between"><span className="text-gray-500">Service Fee</span><span className="font-medium">{formatCurrency(fee)}</span></div>}
+            {fee > 0 && <div className="flex justify-between"><span className="text-gray-500">CashIn-Tap Service Fee</span><span className="font-medium">{formatCurrency(fee)}</span></div>}
             <div className="flex justify-between border-t pt-2 mt-2"><span className="font-semibold">Total</span><span className="font-bold text-[#038E80]">{formatCurrency(amount + fee)}</span></div>
           </div>
 
