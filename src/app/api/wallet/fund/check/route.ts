@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
 import { requireAuth } from "@/lib/auth/middleware";
 import { JwtPayload } from "@/lib/auth/jwt";
-import { getInvoice } from "@/providers/xendit/xendit.provider";
+import { getPaymentLink } from "@/providers/paymongo/paymongo.provider";
 import { creditWallet } from "@/services/wallet/wallet.service";
 import { TransactionStatus } from "@/types/enums";
 
@@ -16,36 +16,35 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   });
 
   if (!txn) return NextResponse.json({ status: "not_found" }, { status: 404 });
-
-  // Already successfully processed
   if (txn.status === TransactionStatus.SUCCESS) return NextResponse.json({ status: "paid" });
 
-  const invoiceId = txn.fundingTxn?.xenditInvoiceId;
-  if (!invoiceId) return NextResponse.json({ status: txn.status.toLowerCase() });
+  const linkId = txn.fundingTxn?.paymongoLinkId;
+  if (!linkId) return NextResponse.json({ status: txn.status.toLowerCase() });
 
-  let invoice: any;
+  let link: any;
   try {
-    invoice = await getInvoice(invoiceId);
+    link = await getPaymentLink(linkId);
   } catch {
     return NextResponse.json({ status: txn.status.toLowerCase() });
   }
 
-  if (invoice.status === "PAID" || invoice.status === "SETTLED") {
+  const pmStatus = link.attributes?.status;
+
+  if (pmStatus === "paid") {
     const wallet = await prisma.wallet.findUnique({ where: { userId: txn.userId } });
     if (!wallet) return NextResponse.json({ status: "error" }, { status: 500 });
 
-    // Avoid double credit if webhook already processed it
     const fresh = await prisma.transaction.findUnique({ where: { id: txn.id } });
     if (fresh?.status === TransactionStatus.SUCCESS) return NextResponse.json({ status: "paid" });
 
     await prisma.$transaction(async (tx: any) => {
       await tx.transaction.update({
         where: { id: txn.id },
-        data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: invoice.id },
+        data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: linkId },
       });
       await tx.fundingTransaction.update({
         where: { transactionId: txn.id },
-        data: { xenditPaymentId: invoice.id, paidAt: new Date() },
+        data: { paymongoPaymentId: linkId, paidAt: new Date() },
       });
     });
 
@@ -63,7 +62,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return NextResponse.json({ status: "paid", amount: Number(txn.grossAmount) });
   }
 
-  if (invoice.status === "EXPIRED") {
+  if (pmStatus === "archived") {
     await prisma.transaction.update({
       where: { id: txn.id },
       data: { status: TransactionStatus.CANCELLED, failedAt: new Date() },
@@ -71,5 +70,5 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return NextResponse.json({ status: "expired" });
   }
 
-  return NextResponse.json({ status: "pending", xenditStatus: invoice.status });
+  return NextResponse.json({ status: "pending", paymongoStatus: pmStatus });
 });
