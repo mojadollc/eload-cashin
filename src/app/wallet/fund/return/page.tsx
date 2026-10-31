@@ -30,8 +30,7 @@ function ReturnContent() {
         if (res?.status === "paid") {
           setAmount(res.amount || 0);
           setStatus("paid");
-          // Auto-redirect to wallet after 2s
-          setTimeout(() => router.replace("/wallet?funded=1"), 2000);
+          setTimeout(() => router.replace("/wallet?funded=1"), 1500);
           return;
         }
         if (res?.status === "expired") {
@@ -85,6 +84,12 @@ function ReturnContent() {
         <p className="text-gray-400 mt-2 text-sm">Your wallet has been credited.</p>
         <p className="text-xs text-gray-300 mt-1">Redirecting to your wallet...</p>
       </div>
+      <button
+        onClick={() => router.replace("/wallet?funded=1")}
+        className="mt-2 flex items-center gap-2 bg-green-500 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-green-500/30 hover:bg-green-600 transition-all"
+      >
+        <Wallet size={18} /> Go to Wallet
+      </button>
     </div>
   );
 
