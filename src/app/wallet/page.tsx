@@ -48,7 +48,8 @@ function WalletContent() {
       api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
     };
 
-    load();
+    // Reconcile any PENDING txns that were actually paid
+    api.post("/api/wallet/fund/reconcile", {}).then(() => load());
 
     if (funded === "1") { setBanner("funded"); return; }
 

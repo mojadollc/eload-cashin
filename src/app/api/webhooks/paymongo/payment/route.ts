@@ -24,21 +24,37 @@ export async function POST(req: NextRequest) {
   if (!paymentData) return NextResponse.json({ ok: true });
 
   const paymongoPaymentId: string = paymentData.id;
-  // remarks may contain full description — extract the WF- transaction number
+  // Extract WF- txn number from remarks or description
   const rawRemarks: string = paymentData.attributes?.remarks || paymentData.attributes?.description || "";
-  const txnMatch = rawRemarks.match(/WF-\d{8}-\d+/);
-  const txnNumber: string = txnMatch ? txnMatch[0] : rawRemarks.trim();
+  const txnMatch = rawRemarks.match(/WF-[\w-]+/);
+  const txnNumber: string = txnMatch ? txnMatch[0] : "";
+  // Also grab the payment link ID from the payment's source
+  const paymongoLinkId: string = paymentData.attributes?.source?.id || "";
 
   const webhook = await prisma.providerWebhook.create({
-    data: { provider: "PAYMONGO", eventType, payload, reference: txnNumber || paymongoPaymentId },
+    data: { provider: "PAYMONGO", eventType, payload, reference: txnNumber || paymongoLinkId || paymongoPaymentId },
   });
 
   if (webhook.processed) return NextResponse.json({ ok: true });
 
-  const transaction = await prisma.transaction.findFirst({
-    where: { transactionNumber: txnNumber, type: "WALLET_FUND" },
-    include: { fundingTxn: true },
-  });
+  // Look up transaction by txn number first, then fall back to paymongoLinkId
+  let transaction = txnNumber
+    ? await prisma.transaction.findFirst({
+        where: { transactionNumber: txnNumber, type: "WALLET_FUND" },
+        include: { fundingTxn: true },
+      })
+    : null;
+
+  if (!transaction && paymongoLinkId) {
+    const funding = await prisma.fundingTransaction.findFirst({
+      where: { paymongoLinkId },
+      include: { transaction: true },
+    });
+    if (funding) transaction = await prisma.transaction.findUnique({
+      where: { id: funding.transactionId },
+      include: { fundingTxn: true },
+    });
+  }
 
   if (!transaction) {
     await prisma.providerWebhook.update({ where: { id: webhook.id }, data: { processed: true, processedAt: new Date() } });
@@ -58,7 +74,7 @@ export async function POST(req: NextRequest) {
     await tx.providerWebhook.update({ where: { id: webhook.id }, data: { processed: true, processedAt: new Date() } });
   });
 
-  await creditWallet(wallet.id, Number(transaction.grossAmount), "Wallet Funding", transaction.id, txnNumber);
+  await creditWallet(wallet.id, Number(transaction.grossAmount), "Wallet Funding", transaction.id, transaction.transactionNumber);
 
   await prisma.notification.create({
     data: {

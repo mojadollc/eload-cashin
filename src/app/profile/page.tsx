@@ -69,6 +69,8 @@ export default function ProfilePage() {
 
   const fetchHistory = useCallback(async (p = 1) => {
     setLoading(true);
+    // Reconcile any PENDING wallet fund txns before fetching
+    if (p === 1) api.post("/api/wallet/fund/reconcile", {}).then(() => api.get("/api/wallet").then(setWallet));
     const params = new URLSearchParams({ page: String(p), limit: "10" });
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
