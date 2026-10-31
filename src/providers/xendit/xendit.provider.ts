@@ -66,7 +66,13 @@ export async function getDisbursement(disbursementId: string) {
 }
 
 export function verifyXenditWebhook(token: string): boolean {
-  return token === process.env.XENDIT_WEBHOOK_TOKEN;
+  const expected = process.env.XENDIT_WEBHOOK_TOKEN;
+  if (!expected) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+  } catch {
+    return false;
+  }
 }
 
 export async function getInvoice(invoiceId: string) {
