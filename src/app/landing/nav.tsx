@@ -25,7 +25,7 @@ export default function LandingNav() {
         <div className="hidden md:flex items-center gap-8">
           <a href="#features" className="text-sm font-medium text-gray-600 hover:text-[#038E80] transition-colors">Features</a>
           <a href="#how-it-works" className="text-sm font-medium text-gray-600 hover:text-[#038E80] transition-colors">How It Works</a>
-          <a href="#pricing" className="text-sm font-medium text-gray-600 hover:text-[#038E80] transition-colors">Pricing</a>
+
         </div>
         <div className="hidden md:flex items-center gap-3">
           <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-[#038E80] transition-colors px-4 py-2">Sign In</Link>
@@ -39,7 +39,7 @@ export default function LandingNav() {
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-3">
           <a href="#features" className="block text-sm font-medium text-gray-600 py-2" onClick={() => setMenuOpen(false)}>Features</a>
           <a href="#how-it-works" className="block text-sm font-medium text-gray-600 py-2" onClick={() => setMenuOpen(false)}>How It Works</a>
-          <a href="#pricing" className="block text-sm font-medium text-gray-600 py-2" onClick={() => setMenuOpen(false)}>Pricing</a>
+
           <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
             <Link href="/login" className="text-center text-sm font-medium text-gray-600 py-2.5 border border-gray-200 rounded-xl">Sign In</Link>
             <Link href="/register" className="text-center text-sm font-semibold bg-[#038E80] text-white py-2.5 rounded-xl">Get Started</Link>
