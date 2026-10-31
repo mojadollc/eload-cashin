@@ -83,17 +83,33 @@ export async function finalizeCashout(disbursementId: string, status: string) {
 
   const hold = await prisma.walletHold.findFirst({ where: { transactionId: cashoutTxn.transactionId, status: "ACTIVE" } });
 
-  if (status === "COMPLETED") {
+  if (status === "COMPLETED" || status === "SUCCESS") {
     if (hold) await consumeHold(hold.id, cashoutTxn.transactionId, "Cash Out completed");
     await prisma.$transaction(async (tx: any) => {
       await tx.cashoutTransaction.update({ where: { transactionId: cashoutTxn.transactionId }, data: { cashoutStatus: "SUCCESS" } });
       await tx.transaction.update({ where: { id: cashoutTxn.transactionId }, data: { status: TransactionStatus.SUCCESS, completedAt: new Date() } });
+    });
+    await prisma.notification.create({
+      data: {
+        userId: cashoutTxn.transaction.userId,
+        title: "Cash Out Successful",
+        message: `₱${Number(cashoutTxn.transaction.grossAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been sent to ${cashoutTxn.accountName}.`,
+        type: "CASHOUT",
+      },
     });
   } else if (["FAILED", "REVERSED", "REJECTED"].includes(status)) {
     if (hold) await releaseHold(hold.id);
     await prisma.$transaction(async (tx: any) => {
       await tx.cashoutTransaction.update({ where: { transactionId: cashoutTxn.transactionId }, data: { cashoutStatus: status as any } });
       await tx.transaction.update({ where: { id: cashoutTxn.transactionId }, data: { status: TransactionStatus.FAILED, failedAt: new Date() } });
+    });
+    await prisma.notification.create({
+      data: {
+        userId: cashoutTxn.transaction.userId,
+        title: "Cash Out Failed",
+        message: `Your cash out of ₱${Number(cashoutTxn.transaction.grossAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })} was ${status.toLowerCase()}. Your funds have been returned.`,
+        type: "CASHOUT",
+      },
     });
   }
 }

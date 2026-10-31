@@ -19,49 +19,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // ── Extract IDs from payload ──────────────────────────────────────────────
-  // PayMongo sends different shapes for payment.paid vs link.payment.paid:
-  //   payment.paid      → data.attributes.data = payment object
-  //   link.payment.paid → data.attributes.data = link object (payments nested inside)
-  const eventData = payload?.data?.attributes?.data;
-  if (!eventData) return NextResponse.json({ ok: true });
+  // Both payment.paid and link.payment.paid have the PAYMENT object as data
+  // See: https://docs.paymongo.com/docs/developer-tools-webhooks
+  const paymentData = payload?.data?.attributes?.data;
+  if (!paymentData) return NextResponse.json({ ok: true });
 
-  let paymongoPaymentId = "";
-  let paymongoLinkId = "";
-  let txnNumber = "";
+  const paymongoPaymentId: string = paymentData.id || "";
+  // source.id = the payment link that generated this payment
+  const paymongoLinkId: string = paymentData.attributes?.source?.id || "";
+  // remarks = the externalId/txnNumber we set when creating the link
+  const remarks: string = paymentData.attributes?.remarks || paymentData.attributes?.description || "";
+  const txnMatch = remarks.match(/WF-[\w-]+/);
+  const txnNumber: string = txnMatch ? txnMatch[0] : remarks.trim();
 
-  if (eventType === "link.payment.paid") {
-    // eventData is the LINK object
-    paymongoLinkId = eventData.id || "";
-    // remarks on the link = the externalId we set (e.g. WF-20261031-123)
-    const remarks: string = eventData.attributes?.remarks || eventData.attributes?.description || "";
-    const match = remarks.match(/WF-[\w-]+/);
-    txnNumber = match ? match[0] : remarks.trim();
-    // payment id is inside payments array
-    const payments: any[] = eventData.attributes?.payments || [];
-    paymongoPaymentId = payments[0]?.id || "";
-  } else {
-    // payment.paid — eventData is the PAYMENT object
-    paymongoPaymentId = eventData.id || "";
-    // source.id on a payment = the link that generated it
-    paymongoLinkId = eventData.attributes?.source?.id || "";
-    const remarks: string = eventData.attributes?.remarks || eventData.attributes?.description || "";
-    const match = remarks.match(/WF-[\w-]+/);
-    txnNumber = match ? match[0] : "";
-  }
+  // ── Idempotency: skip if this payment was already processed ──────────────
+  const alreadyProcessed = await prisma.providerWebhook.findFirst({
+    where: { reference: paymongoPaymentId, processed: true },
+  });
+  if (alreadyProcessed) return NextResponse.json({ ok: true });
 
-  // ── Idempotency: store webhook ────────────────────────────────────────────
   const webhook = await prisma.providerWebhook.create({
     data: {
       provider: "PAYMONGO",
       eventType,
       payload,
-      reference: txnNumber || paymongoLinkId || paymongoPaymentId,
+      reference: paymongoPaymentId,
     },
   });
 
-  // ── Look up our transaction ───────────────────────────────────────────────
-  // Priority: txnNumber → paymongoLinkId (most reliable since we store it)
+  // ── Look up transaction: txnNumber first, then paymongoLinkId ────────────
   let transaction: any = null;
 
   if (txnNumber) {
@@ -93,28 +79,27 @@ export async function POST(req: NextRequest) {
 
   // Already credited — idempotent
   if (transaction.status === TransactionStatus.SUCCESS) {
-    await prisma.providerWebhook.update({ where: { id: webhook.id }, data: { processed: true, processedAt: new Date() } });
+    await prisma.providerWebhook.update({
+      where: { id: webhook.id },
+      data: { processed: true, processedAt: new Date() },
+    });
     return NextResponse.json({ ok: true });
   }
 
   const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: transaction.userId } });
 
-  // ── Credit wallet ─────────────────────────────────────────────────────────
   await prisma.$transaction(async (tx: any) => {
     await tx.transaction.update({
       where: { id: transaction.id },
       data: {
         status: TransactionStatus.SUCCESS,
         completedAt: new Date(),
-        providerReference: paymongoPaymentId || paymongoLinkId,
+        providerReference: paymongoPaymentId,
       },
     });
     await tx.fundingTransaction.update({
       where: { transactionId: transaction.id },
-      data: {
-        paymongoPaymentId: paymongoPaymentId || null,
-        paidAt: new Date(),
-      },
+      data: { paymongoPaymentId, paidAt: new Date() },
     });
     await tx.providerWebhook.update({
       where: { id: webhook.id },
