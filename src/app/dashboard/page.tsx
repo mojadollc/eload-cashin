@@ -48,14 +48,17 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showBalance, setShowBalance] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [pendingFund, setPendingFund] = useState<{ transactionNumber: string; amount: number } | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get("/api/wallet"),
       api.get("/api/transactions?limit=5"),
-    ]).then(([w, d]) => {
+      api.get("/api/wallet/fund/pending"),
+    ]).then(([w, d, p]) => {
       setWallet(w);
       setTransactions(d?.transactions || []);
+      if (p?.transactionNumber) setPendingFund(p);
       setLoading(false);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -88,6 +91,25 @@ export default function DashboardPage() {
           </div>
         </Link>
       </div>
+
+      {/* Pending Fund Banner */}
+      {pendingFund && (
+        <div className="mx-4 lg:mx-0 mt-3 bg-yellow-50 border border-yellow-200 rounded-2xl p-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-yellow-800">Payment in progress</p>
+            <p className="text-xs text-yellow-600 truncate">₱{pendingFund.amount.toLocaleString()} — tap to check status</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={`/wallet/fund/return?ref=${pendingFund.transactionNumber}`}
+              className="text-xs font-bold bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-3 py-1.5 rounded-xl transition-all"
+            >
+              Check
+            </Link>
+            <button onClick={() => setPendingFund(null)} className="text-yellow-400 hover:text-yellow-600 text-lg leading-none">&times;</button>
+          </div>
+        </div>
+      )}
 
       {/* Wallet Card */}
       <div className="mx-4 lg:mx-0 mt-3 relative rounded-3xl overflow-hidden text-white"

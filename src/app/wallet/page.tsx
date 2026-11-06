@@ -46,28 +46,16 @@ function WalletContent() {
   const [banner, setBanner] = useState<"funded" | "cancelled" | "pending" | null>(null);
 
   useEffect(() => {
+    const load = () => Promise.all([
+      api.get("/api/wallet").then(setWallet),
+      api.get("/api/wallet/transactions").then((d: any) => setEntries(d?.entries || [])),
+    ]);
+
+    // Reconcile first (marks expired sessions, webhook already handled credits)
+    api.post("/api/wallet/fund/reconcile", {}).then(load);
+
     const funded = searchParams.get("funded");
-    const failed = searchParams.get("failed");
-    const ref = searchParams.get("ref");
-
-    const load = () => {
-      api.get("/api/wallet").then(setWallet);
-      api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
-    };
-
-    api.post("/api/wallet/fund/reconcile", {}).then(() => load());
-
-    if (funded === "1") { setBanner("funded"); return; }
-    if (ref) {
-      setBanner("pending");
-      api.post("/api/wallet/fund/check", { transactionNumber: ref }).then((res: any) => {
-        if (res?.status === "paid") { setBanner("funded"); load(); }
-        else if (res?.status === "expired" || failed === "1") setBanner("cancelled");
-        else setBanner("pending");
-      });
-      return;
-    }
-    api.post("/api/wallet/fund/cancel-stale", {});
+    if (funded === "1") setBanner("funded");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = filter === "All" ? entries : entries.filter((e: any) => {
