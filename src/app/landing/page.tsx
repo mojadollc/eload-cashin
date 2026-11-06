@@ -16,7 +16,7 @@ const features = [
 
 const steps = [
   { step: "01", title: "Create Account", desc: "Register with your mobile number and verify via OTP in under 2 minutes." },
-  { step: "02", title: "Fund Your Wallet", desc: "Add money via GCash, Maya, card, or bank transfer through Xendit." },
+  { step: "02", title: "Fund Your Wallet", desc: "Add money via GCash, Maya, card, or bank transfer through PayMongo." },
   { step: "03", title: "Use Services", desc: "Buy e-load, cash out to any account, or track all your transactions." },
 ];
 
@@ -136,12 +136,25 @@ export default function LandingPage() {
       </section>
 
       {/* Trusted by */}
-      <section className="py-10 bg-gray-50 border-y border-gray-100">
+      <section className="py-12 bg-gray-50 border-y border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <p className="text-center text-sm text-gray-400 font-medium mb-6">POWERED BY TRUSTED PROVIDERS</p>
-          <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-16">
-            {["Xendit", "GbitsAPI", "Globe", "Smart", "DITO", "GCash", "Maya"].map(p => (
-              <span key={p} className="text-gray-400 font-bold text-sm tracking-wide">{p}</span>
+          <p className="text-center text-xs text-gray-400 font-semibold uppercase tracking-widest mb-8">Powered by Trusted Providers</p>
+          <div className="flex flex-wrap justify-center items-center gap-6 lg:gap-10">
+            {[
+              { name: "PayMongo",  img: "/providers/paymongo.png", bg: "#0A6EBD" },
+              { name: "GBits",     img: "/providers/gbits.png",    bg: "#00843D" },
+              { name: "Globe",     img: "/providers/globe.png",    bg: "#007DFE" },
+              { name: "Smart",     img: "/providers/smart.png",    bg: "#00B900" },
+              { name: "DITO",      img: "/providers/dito.png",     bg: "#06B6D4" },
+              { name: "GCash",     img: "/providers/gcash.png",    bg: "#007DFF" },
+              { name: "Maya",      img: "/providers/maya.png",     bg: "#00C27A" },
+            ].map(({ name, img, bg }) => (
+              <div key={name} className="flex flex-col items-center gap-2 group">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center group-hover:shadow-md transition-shadow">
+                  <img src={img} alt={name} className="w-full h-full object-cover" />
+                </div>
+                <span className="text-xs font-semibold text-gray-400">{name}</span>
+              </div>
             ))}
           </div>
         </div>
