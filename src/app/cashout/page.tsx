@@ -74,7 +74,7 @@ export default function CashoutPage() {
 
   // Zero-balance wall
   if (wallet !== null && Number(wallet?.availableBalance ?? 0) <= 0) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center px-6 space-y-5">
+    <div className="bg-[#F7F9FA] flex flex-col items-center justify-center py-16 text-center px-6 space-y-5">
       <div className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center">
         <span className="text-4xl">💳</span>
       </div>
@@ -89,7 +89,7 @@ export default function CashoutPage() {
 
   // ── RESULT ───────────────────────────────────────────────────────────────────
   if (step === "result") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="bg-[#F7F9FA] flex flex-col items-center justify-center py-16 text-center space-y-5 px-6">
       {result?.error ? (
         <>
           <div className="w-28 h-28 rounded-full bg-red-500 flex items-center justify-center shadow-xl shadow-red-500/30">
@@ -132,7 +132,7 @@ export default function CashoutPage() {
 
   // ── PROCESSING ───────────────────────────────────────────────────────────────
   if (step === "processing") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="bg-[#F7F9FA] flex flex-col items-center justify-center py-16 text-center space-y-5 px-6">
       <div className="relative">
         <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: channelColor }} />
         <div className="relative w-24 h-24 rounded-full flex items-center justify-center" style={{ backgroundColor: channelColor }}>
@@ -149,7 +149,7 @@ export default function CashoutPage() {
 
   // ── CONFIRM ──────────────────────────────────────────────────────────────────
   if (step === "confirm") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="bg-[#F7F9FA] flex flex-col">
       <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
         <button onClick={() => setStep("form")} className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-xl" style={{ color: channelColor, backgroundColor: channelColor + "18" }}>
           <ChevronLeft className="h-5 w-5" /> Back
@@ -209,7 +209,7 @@ export default function CashoutPage() {
         </Suspense>
       )}
 
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="bg-[#F7F9FA] flex flex-col">
         {/* Header */}
         <div className="bg-[#038E80] px-4 pt-6 pb-16">
           <div className="flex items-center justify-between">

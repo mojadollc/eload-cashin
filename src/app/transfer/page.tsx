@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { formatCurrency } from "@/lib/utils";
-import { CheckCircle, XCircle, Loader2, Wallet } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Wallet, ChevronLeft } from "lucide-react";
+import Link from "next/link";
 
 const QUICK_AMOUNTS = [50, 100, 500, 1000, 2000];
 type Step = "form" | "confirm" | "processing" | "result";
@@ -14,7 +15,6 @@ export default function TransferPage() {
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState<number | "">("");
   const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState("");
 
   useEffect(() => { api.get("/api/wallet").then(setWallet); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -25,25 +25,23 @@ export default function TransferPage() {
     setStep("result");
   };
 
-  const reset = () => { setStep("form"); setResult(null); setError(""); setAccountNumber(""); setAmount(""); };
+  const reset = () => { setStep("form"); setResult(null); setAccountNumber(""); setAmount(""); };
 
-  // Zero-balance wall
   if (wallet !== null && Number(wallet?.availableBalance ?? 0) <= 0) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center px-6 space-y-5">
+    <div className="bg-[#F7F9FA] flex flex-col items-center justify-center text-center px-6 py-16 space-y-5">
       <div className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center">
         <span className="text-4xl">💳</span>
       </div>
       <div>
         <h2 className="text-2xl font-bold text-gray-800">No Balance</h2>
-        <p className="text-gray-400 mt-2 max-w-xs">You need to fund your wallet before transferring.</p>
+        <p className="text-gray-400 mt-2 max-w-xs">Fund your wallet before transferring.</p>
       </div>
-      <a href="/wallet/fund" className="w-full max-w-xs py-4 rounded-2xl text-white font-bold text-lg bg-[#038E80] flex items-center justify-center gap-2">Fund Wallet</a>
-      <a href="/dashboard" className="text-sm text-gray-400 underline">Back to Dashboard</a>
+      <Link href="/wallet/fund" className="w-full max-w-xs py-4 rounded-2xl text-white font-bold text-lg bg-[#038E80] flex items-center justify-center">Fund Wallet</Link>
     </div>
   );
 
   if (step === "result") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 py-16">
       {result?.error ? (
         <>
           <div className="w-28 h-28 rounded-full bg-red-500 flex items-center justify-center shadow-xl shadow-red-500/30">
@@ -83,7 +81,7 @@ export default function TransferPage() {
   );
 
   if (step === "processing") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 py-20">
       <div className="relative">
         <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-[#038E80]" />
         <div className="relative w-24 h-24 rounded-full flex items-center justify-center bg-[#038E80]">
@@ -95,13 +93,17 @@ export default function TransferPage() {
   );
 
   if (step === "confirm") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-        <button onClick={() => setStep("form")} className="text-sm font-medium px-3 py-1.5 rounded-xl text-[#038E80] bg-[#038E80]/10">← Back</button>
-        <p className="font-bold text-gray-800">Review & Confirm</p>
-        <div className="w-14" />
+    <div className="bg-[#F7F9FA]">
+      <div className="bg-[#038E80] px-4 pt-6 pb-4 flex items-center gap-3">
+        <button onClick={() => setStep("form")} className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+          <ChevronLeft className="h-5 w-5 text-white" />
+        </button>
+        <div>
+          <h1 className="text-white text-lg font-bold">Review & Confirm</h1>
+          <p className="text-white/60 text-xs">CashIn Tap Transfer</p>
+        </div>
       </div>
-      <div className="flex-1 px-4 pt-4 pb-6 space-y-4">
+      <div className="px-4 pt-4 space-y-4">
         <div className="rounded-2xl overflow-hidden shadow-sm">
           <div className="py-6 text-center text-white bg-[#038E80]">
             <p className="text-sm opacity-80 mb-1">CashIn Tap Wallet</p>
@@ -110,7 +112,7 @@ export default function TransferPage() {
           <div className="bg-white p-4 space-y-3">
             <div className="flex justify-between"><span className="text-sm text-gray-400">Account No.</span><span className="font-bold text-gray-800 tracking-widest">{accountNumber}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Amount</span><span className="font-bold">{formatCurrency(Number(amount))}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-gray-400">CashIn-Tap Service Fee</span><span className="font-bold text-green-600">FREE</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Service Fee</span><span className="font-bold text-green-600">FREE</span></div>
             <div className="flex justify-between border-t pt-3">
               <span className="font-bold">Total Deducted</span>
               <span className="font-black text-base text-red-500">{formatCurrency(Number(amount))}</span>
@@ -131,11 +133,15 @@ export default function TransferPage() {
     </div>
   );
 
+  // ── FORM ──────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-[#038E80] px-4 pt-6 pb-16">
+    <div className="bg-[#F7F9FA]">
+      <div className="bg-[#038E80] px-4 pt-6 pb-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-white text-xl font-bold">CashIn Tap Transfer</h1>
+          <div>
+            <h1 className="text-white text-xl font-bold">CashIn Tap Transfer</h1>
+            <p className="text-white/60 text-xs mt-0.5">Free · Instant</p>
+          </div>
           <div className="text-right">
             <p className="text-white/60 text-xs">Available</p>
             <p className="text-white font-bold text-sm">{formatCurrency(wallet?.availableBalance || 0)}</p>
@@ -143,7 +149,7 @@ export default function TransferPage() {
         </div>
       </div>
 
-      <div className="px-4 -mt-10 pb-8 space-y-4">
+      <div className="px-4 pt-4 space-y-4">
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
           <div className="flex items-center gap-2 mb-1">
             <Wallet size={16} className="text-[#038E80]" />
@@ -176,15 +182,13 @@ export default function TransferPage() {
         {amount !== "" && amount > 0 && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-2 text-sm">
             <div className="flex justify-between"><span className="text-gray-500">Amount</span><span className="font-semibold">{formatCurrency(Number(amount))}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">CashIn-Tap Service Fee</span><span className="font-semibold text-green-600">FREE</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">Service Fee</span><span className="font-semibold text-green-600">FREE</span></div>
             <div className="flex justify-between border-t pt-2">
               <span className="font-bold">Total Deducted</span>
               <span className="font-black text-red-500">{formatCurrency(Number(amount))}</span>
             </div>
           </div>
         )}
-
-        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
         <button
           disabled={!accountNumber || !amount || Number(amount) < 1}
