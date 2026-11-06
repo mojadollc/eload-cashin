@@ -35,12 +35,12 @@ export function UserSidebar() {
     <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-100 h-screen sticky top-0 shrink-0">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[#038E80] flex items-center justify-center">
             <Wallet size={16} className="text-white" />
           </div>
           <span className="text-lg font-bold text-gray-900">CashIn <span className="text-[#038E80]">Tap</span></span>
-        </div>
+        </Link>
       </div>
 
       {/* Nav */}

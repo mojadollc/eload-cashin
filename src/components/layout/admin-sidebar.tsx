@@ -26,10 +26,10 @@ export function AdminSidebar() {
   return (
     <aside className="flex flex-col w-64 bg-[#17202A] h-screen sticky top-0 shrink-0">
       <div className="px-6 py-5 border-b border-white/10">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <Shield size={20} className="text-[#038E80]" />
           <span className="text-lg font-bold text-white">CashIn Tap</span>
-        </div>
+        </Link>
         <span className="text-xs text-gray-400 mt-0.5 block">Admin Panel</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
