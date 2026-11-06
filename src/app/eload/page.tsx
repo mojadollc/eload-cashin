@@ -19,11 +19,25 @@ const NETWORK_COLORS: Record<string, string> = {
 };
 
 const NETWORK_LOGOS: Record<string, string> = {
-  SMART: "/networks/smart.png", GLOBE: "/networks/globe.png",
-  TNT: "/networks/tnt.png", DITO: "/networks/Dito.png",
-  TM: "/networks/tm.png", GOMO: "/networks/gomo.png",
-  SUN: "/networks/sun.png", "GAME CLUB": "/networks/gameclub.png",
-  CIGNAL: "/networks/Cignal.png",
+  SMART:        "/networks/smart.png",
+  GLOBE:        "/networks/globe.png",
+  TNT:          "/networks/tnt.png",
+  DITO:         "/networks/Dito.png",
+  TM:           "/networks/tm.png",
+  GOMO:         "/networks/gomo.png",
+  "GOMO PH":    "/networks/gomo.png",
+  SUN:          "/networks/sun.png",
+  "GAME CLUB":  "/networks/gameclub.png",
+  CIGNAL:       "/networks/Cignal.png",
+  "CIGNAL TV":  "/networks/Cignal.png",
+};
+
+// Emoji fallback for networks without logo images
+const NETWORK_EMOJI: Record<string, string> = {
+  "RAZER GOLD": "🎮", ROBLOX: "🎮", GARENA: "🎮",
+  GENSHIN: "🎮", "MOBILE LEGENDS": "🎮", MLBB: "🎮", CODM: "🎮",
+  SKY: "📺", "SKY CABLE": "📺", VIVA: "📺", VIVAMAX: "📺",
+  "VIVA ONE": "📺", VIU: "📺", GSAT: "📺", SATELLITE: "📺",
 };
 
 interface Product {
@@ -192,7 +206,9 @@ export default function EloadPage() {
                 <button key={net} onClick={() => { setSelectedNetwork(net); setFilter("all"); }}
                   className={`shrink-0 flex flex-col items-center justify-center gap-1 px-4 py-2.5 rounded-2xl border-2 min-w-[72px] transition-all ${active ? "border-transparent shadow-md" : "border-gray-100 bg-white"}`}
                   style={active ? { backgroundColor: color } : {}}>
-                  {logo && <img src={logo} alt={net} className={`w-8 h-8 object-contain ${active ? "brightness-0 invert" : ""}`} />}
+                  {logo
+                    ? <img src={logo} alt={net} className={`w-8 h-8 object-contain ${active ? "brightness-0 invert" : ""}`} />
+                    : <span className="text-lg">{NETWORK_EMOJI[net] || "📱"}</span>}
                   <span className={`text-xs font-bold ${active ? "text-white" : "text-gray-700"}`}>{net}</span>
                 </button>
               );
@@ -248,7 +264,7 @@ export default function EloadPage() {
                 <div className="shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: netColor + "18" }}>
                   {NETWORK_LOGOS[p.network]
                     ? <img src={NETWORK_LOGOS[p.network]} alt={p.network} className="w-10 h-10 object-contain" />
-                    : <span className="text-base font-black" style={{ color: netColor }}>₱{p.amount}</span>}
+                    : <span className="text-2xl">{NETWORK_EMOJI[p.network] || "📱"}</span>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-extrabold text-gray-900 leading-snug">{p.name}</p>
