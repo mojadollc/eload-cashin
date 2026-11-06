@@ -16,11 +16,13 @@ export const PAYMONGO_BANK_CODES: Record<string, string> = {
 
 export const PAYMONGO_CHANNELS = new Set(Object.keys(PAYMONGO_BANK_CODES));
 
-const client = axios.create({
-  baseURL: "https://api.paymongo.com/v1",
-  auth: { username: process.env.PAYMONGO_SECRET_KEY!, password: "" },
-  headers: { "Content-Type": "application/json" },
-});
+function getClient() {
+  return axios.create({
+    baseURL: "https://api.paymongo.com/v1",
+    auth: { username: process.env.PAYMONGO_SECRET_KEY!, password: "" },
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 // ── Wallet Funding ────────────────────────────────────────────────────────────
 
@@ -34,7 +36,7 @@ export interface CreateCheckoutSessionParams {
 
 export async function createCheckoutSession(params: CreateCheckoutSessionParams) {
   try {
-    const { data } = await client.post("/checkout_sessions", {
+    const { data } = await getClient().post("/checkout_sessions", {
       data: {
         attributes: {
           billing: { name: "CashIn Tap Customer" },
@@ -61,7 +63,7 @@ export async function createCheckoutSession(params: CreateCheckoutSessionParams)
 }
 
 export async function getCheckoutSession(sessionId: string) {
-  const { data } = await client.get(`/checkout_sessions/${sessionId}`);
+  const { data } = await getClient().get(`/checkout_sessions/${sessionId}`);
   return data.data;
 }
 
@@ -80,7 +82,7 @@ export async function createPayMongoDisbursement(params: CreatePayMongoDisbursem
   if (!bankCode) throw new Error(`Unsupported bank channel: ${params.bankCode}`);
 
   try {
-    const { data } = await client.post("/disbursements", {
+    const { data } = await getClient().post("/disbursements", {
       data: {
         attributes: {
           amount: Math.round(params.amount * 100),
@@ -100,7 +102,7 @@ export async function createPayMongoDisbursement(params: CreatePayMongoDisbursem
 }
 
 export async function getPayMongoDisbursement(disbursementId: string) {
-  const { data } = await client.get(`/disbursements/${disbursementId}`);
+  const { data } = await getClient().get(`/disbursements/${disbursementId}`);
   return data.data;
 }
 

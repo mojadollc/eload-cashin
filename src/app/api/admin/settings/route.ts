@@ -5,6 +5,8 @@ import fs from "fs";
 import path from "path";
 import { exec } from "child_process";
 
+export const dynamic = "force-dynamic";
+
 const ENV_PATH = path.resolve(process.cwd(), ".env");
 
 const EDITABLE_KEYS = [
@@ -94,7 +96,14 @@ export const POST = requireAuth(async (req: NextRequest, _payload: JwtPayload) =
     }
   }
 
-  fs.writeFileSync(ENV_PATH, writeEnv(content, updates), "utf-8");
+  const newContent = writeEnv(content, updates);
+  fs.writeFileSync(ENV_PATH, newContent, "utf-8");
+
+  // Reload process.env at runtime so changes take effect without rebuild
+  const freshEnv = parseEnv(newContent);
+  for (const [key, val] of Object.entries(freshEnv)) {
+    process.env[key] = val;
+  }
 
   const restart = body.restart !== false;
   if (restart) {
