@@ -4,17 +4,17 @@ import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, XCircle } from "lucide-react";
 
 const TYPES = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND", "ADMIN_ADJUSTMENT"];
-const STATUSES = ["All", "SUCCESS", "PENDING", "PROCESSING", "FAILED", "REVERSED", "REFUNDED"];
+const STATUSES = ["All", "SUCCESS", "PENDING", "PROCESSING", "FAILED", "REVERSED", "REFUNDED", "CANCELLED"];
 
 function SkeletonRow() {
   return (
     <tr>
-      {[...Array(8)].map((_, i) => (
+      {[...Array(9)].map((_, i) => (
         <td key={i} className="py-3 pr-4">
-          <div className="h-3 bg-gray-200 rounded-full animate-pulse" style={{ width: `${[120, 100, 70, 70, 60, 70, 60, 80][i]}px` }} />
+          <div className="h-3 bg-gray-200 rounded-full animate-pulse" style={{ width: `${[120, 100, 70, 70, 60, 70, 60, 80, 50][i]}px` }} />
         </td>
       ))}
     </tr>
@@ -30,6 +30,7 @@ export default function AdminTransactionsPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
   const load = useCallback(async (p = 1) => {
     setLoading(true);
@@ -46,6 +47,14 @@ export default function AdminTransactionsPage() {
   useEffect(() => { setPage(1); load(1); }, [type, status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goTo = (p: number) => { setPage(p); load(p); };
+
+  const handleCancel = async (id: string) => {
+    if (!confirm("Cancel this transaction? This cannot be undone.")) return;
+    setCancelling(id);
+    await api.post(`/api/admin/transactions/${id}/cancel`, {});
+    setCancelling(null);
+    load(page);
+  };
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -78,13 +87,14 @@ export default function AdminTransactionsPage() {
                 <th className="pb-2 font-medium">Provider</th>
                 <th className="pb-2 font-medium">Status</th>
                 <th className="pb-2 font-medium">Date</th>
+                <th className="pb-2 font-medium">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading
                 ? [...Array(10)].map((_, i) => <SkeletonRow key={i} />)
                 : transactions.length === 0
-                  ? <tr><td colSpan={8} className="py-10 text-center text-sm text-gray-400">No transactions found</td></tr>
+                  ? <tr><td colSpan={9} className="py-10 text-center text-sm text-gray-400">No transactions found</td></tr>
                   : transactions.map((txn: any) => (
                     <tr key={txn.id} className="hover:bg-gray-50">
                       <td className="py-2.5 font-mono text-xs text-gray-500">{txn.transactionNumber}</td>
@@ -98,6 +108,18 @@ export default function AdminTransactionsPage() {
                       <td className="py-2.5 text-xs text-gray-500">{txn.provider || "—"}</td>
                       <td className="py-2.5"><Badge status={txn.status} /></td>
                       <td className="py-2.5 text-xs text-gray-400">{formatDate(txn.createdAt)}</td>
+                      <td className="py-2.5">
+                        {(txn.status === "PENDING" || txn.status === "PROCESSING") && (
+                          <button
+                            onClick={() => handleCancel(txn.id)}
+                            disabled={cancelling === txn.id}
+                            className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-40"
+                          >
+                            <XCircle size={13} />
+                            {cancelling === txn.id ? "..." : "Cancel"}
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
               }
