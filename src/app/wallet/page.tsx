@@ -46,13 +46,14 @@ function WalletContent() {
   const [banner, setBanner] = useState<"funded" | "cancelled" | "pending" | null>(null);
 
   useEffect(() => {
-    const load = () => Promise.all([
-      api.get("/api/wallet").then(setWallet),
-      api.get("/api/wallet/transactions").then((d: any) => setEntries(d?.entries || [])),
-    ]);
-
-    // Reconcile first (marks expired sessions, webhook already handled credits)
-    api.post("/api/wallet/fund/reconcile", {}).then(load);
+    // Reconcile + cancel stale, then load
+    Promise.all([
+      api.post("/api/wallet/fund/reconcile", {}),
+      api.post("/api/wallet/fund/cancel-stale", {}),
+    ]).then(() => {
+      api.get("/api/wallet").then(setWallet);
+      api.get("/api/wallet/transactions").then((d: any) => setEntries(d?.entries || []));
+    });
 
     const funded = searchParams.get("funded");
     if (funded === "1") setBanner("funded");
