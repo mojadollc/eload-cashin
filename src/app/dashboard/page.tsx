@@ -58,7 +58,17 @@ export default function DashboardPage() {
     ]).then(([w, d, p]) => {
       setWallet(w);
       setTransactions(d?.transactions || []);
-      if (p?.transactionNumber) setPendingFund(p);
+      // Only show banner if transaction is genuinely still PENDING
+      if (p?.transactionNumber) {
+        fetch("/api/wallet/fund/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transactionNumber: p.transactionNumber }),
+        })
+          .then(r => r.json())
+          .then(res => { if (res?.status === "pending") setPendingFund(p); })
+          .catch(() => {});
+      }
       setLoading(false);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
