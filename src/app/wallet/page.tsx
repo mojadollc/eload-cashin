@@ -3,12 +3,11 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "@/components/shared/use-api";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   Plus, Copy, Check, Eye, EyeOff,
   Smartphone, SendHorizonal, ArrowLeftRight,
-  Wallet, RotateCcw, RefreshCw, ArrowDownLeft, Receipt,
+  Wallet, RotateCcw, ArrowDownLeft, Receipt,
 } from "lucide-react";
 
 const TX_ICON: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
@@ -17,6 +16,14 @@ const TX_ICON: Record<string, { icon: React.ElementType; color: string; bg: stri
   CASHOUT:     { icon: SendHorizonal, color: "text-purple-600", bg: "bg-purple-50" },
   REFUND:      { icon: RotateCcw,     color: "text-teal-600",   bg: "bg-teal-50" },
 };
+
+const FILTERS = [
+  { key: "All",         label: "All" },
+  { key: "WALLET_FUND", label: "Funding" },
+  { key: "ELOAD",       label: "E-Load" },
+  { key: "CASHOUT",     label: "Cash Out" },
+  { key: "REFUND",      label: "Refund" },
+];
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -28,35 +35,56 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-const FILTERS = [
-  { key: "All", label: "All" },
-  { key: "WALLET_FUND", label: "Funding" },
-  { key: "ELOAD", label: "E-Load" },
-  { key: "CASHOUT", label: "Cash Out" },
-  { key: "REFUND", label: "Refund" },
-];
+function SkeletonShimmer({ className }: { className: string }) {
+  return <div className={`animate-pulse bg-white/20 rounded-xl ${className}`} />;
+}
+
+function TxSkeleton() {
+  return (
+    <div className="divide-y divide-gray-50">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gray-100 animate-pulse shrink-0" />
+            <div className="space-y-2">
+              <div className="h-3.5 w-32 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-2.5 w-20 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+          </div>
+          <div className="h-3.5 w-16 bg-gray-100 rounded-lg animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function WalletContent() {
   const api = useApi();
   const searchParams = useSearchParams();
   const [wallet, setWallet] = useState<any>(null);
   const [entries, setEntries] = useState<any[]>([]);
+  const [loadingWallet, setLoadingWallet] = useState(true);
+  const [loadingTx, setLoadingTx] = useState(true);
   const [filter, setFilter] = useState("All");
   const [showBalance, setShowBalance] = useState(true);
-  const [banner, setBanner] = useState<"funded" | "cancelled" | "pending" | null>(null);
+  const [banner, setBanner] = useState<"funded" | null>(null);
 
   useEffect(() => {
-    // Reconcile + cancel stale, then load
+    const funded = searchParams.get("funded");
+    if (funded === "1") setBanner("funded");
+
+    // Load wallet data immediately — don't wait for cleanup
+    api.get("/api/wallet").then((d: any) => { setWallet(d); setLoadingWallet(false); });
+    api.get("/api/wallet/transactions").then((d: any) => { setEntries(d?.entries || []); setLoadingTx(false); });
+
+    // Run cleanup in background — doesn't block UI
     Promise.all([
       api.post("/api/wallet/fund/reconcile", {}),
       api.post("/api/wallet/fund/cancel-stale", {}),
     ]).then(() => {
+      // Silently refresh wallet balance after cleanup
       api.get("/api/wallet").then(setWallet);
-      api.get("/api/wallet/transactions").then((d: any) => setEntries(d?.entries || []));
     });
-
-    const funded = searchParams.get("funded");
-    if (funded === "1") setBanner("funded");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = filter === "All" ? entries : entries.filter((e: any) => {
@@ -91,24 +119,35 @@ function WalletContent() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Available Balance</p>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-3xl font-bold tracking-tight">
-                    {showBalance ? formatCurrency(wallet?.availableBalance || 0) : "₱ ••••••"}
-                  </span>
-                  <button onClick={() => setShowBalance(b => !b)}
-                    className="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-                    {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {wallet?.pendingBalance > 0 && (
-                  <p className="text-white/50 text-xs mt-1">+ {formatCurrency(wallet.pendingBalance)} pending</p>
+                {loadingWallet ? (
+                  <div className="space-y-2 mt-1">
+                    <SkeletonShimmer className="h-8 w-36" />
+                    <SkeletonShimmer className="h-3 w-24" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-3xl font-bold tracking-tight">
+                        {showBalance ? formatCurrency(wallet?.availableBalance || 0) : "₱ ••••••"}
+                      </span>
+                      <button onClick={() => setShowBalance(b => !b)}
+                        className="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+                        {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    {wallet?.pendingBalance > 0 && (
+                      <p className="text-white/50 text-xs mt-1">+ {formatCurrency(wallet.pendingBalance)} pending</p>
+                    )}
+                  </>
                 )}
               </div>
               <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
                 <Wallet size={18} className="text-white" />
               </div>
             </div>
-            {wallet?.accountNumber && (
+            {loadingWallet ? (
+              <SkeletonShimmer className="h-4 w-40" />
+            ) : wallet?.accountNumber && (
               <div className="flex items-center gap-2">
                 <p className="text-white/70 text-sm font-semibold tracking-[0.18em]">
                   {wallet.accountNumber.replace(/(.{4})/g, "$1 ").trim()}
@@ -119,15 +158,12 @@ function WalletContent() {
           </div>
         </div>
 
-        {/* Banners */}
+        {/* Funded Banner */}
         {banner === "funded" && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-700 font-medium text-center">✅ Wallet funded successfully!</div>
-        )}
-        {banner === "pending" && (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-sm text-blue-700 font-medium text-center">🕐 Payment pending confirmation...</div>
-        )}
-        {banner === "cancelled" && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-sm text-red-600 font-medium text-center">❌ Payment expired or cancelled.</div>
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-700 font-medium text-center flex items-center justify-between">
+            <span>✅ Wallet funded successfully!</span>
+            <button onClick={() => setBanner(null)} className="text-green-400 hover:text-green-600 text-lg leading-none ml-2">&times;</button>
+          </div>
         )}
 
         {/* Quick Actions */}
@@ -161,7 +197,9 @@ function WalletContent() {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {loadingTx ? (
+            <TxSkeleton />
+          ) : filtered.length === 0 ? (
             <div className="py-12 text-center">
               <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
                 <Receipt size={24} className="text-gray-300" />
