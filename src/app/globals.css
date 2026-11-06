@@ -4,9 +4,20 @@
   box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  height: 100dvh;
+}
+
 body {
   -webkit-font-smoothing: antialiased;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
 }
+
+/* Hide scrollbars on mobile nav strips */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 @keyframes shimmer {
   0% { background-position: 200% 0; }

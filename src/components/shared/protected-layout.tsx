@@ -21,9 +21,18 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
   if (!user) return <Spinner />;
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen min-h-[100dvh]">
       <UserSidebar />
-      <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+      {/* 
+        On mobile: pad bottom by nav height (64px) + safe area.
+        On desktop: no bottom pad needed.
+      */}
+      <main
+        className="flex-1 lg:pb-0 overflow-x-hidden"
+        style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}
+      >
+        {children}
+      </main>
       <MobileNav />
     </div>
   );
