@@ -79,7 +79,7 @@ function WalletContent() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F7F9FA] pb-24">
+    <div className="min-h-screen bg-[#F7F9FA]">
       {/* Header */}
       <div className="bg-[#038E80] px-4 pt-6 pb-24">
         <div className="flex items-center justify-between mb-1">

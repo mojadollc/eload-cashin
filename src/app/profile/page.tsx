@@ -15,7 +15,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#F7F9FA] pb-24">
+    <div className="min-h-screen bg-[#F7F9FA]">
       {/* Header */}
       <div className="bg-[#038E80] px-4 pt-6 pb-20">
         <h1 className="text-white text-xl font-bold">Profile</h1>

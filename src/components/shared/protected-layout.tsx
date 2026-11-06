@@ -23,15 +23,14 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen min-h-[100dvh]">
       <UserSidebar />
-      {/* 
-        On mobile: pad bottom by nav height (64px) + safe area.
-        On desktop: no bottom pad needed.
-      */}
-      <main
-        className="flex-1 lg:pb-0 overflow-x-hidden"
-        style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}
-      >
-        {children}
+      {/* Mobile: pad bottom for nav bar + safe area. Desktop: no pad. */}
+      <main className="flex-1 overflow-x-hidden">
+        <div className="lg:hidden" style={{ paddingBottom: "calc(64px + env(safe-area-inset-bottom))" }}>
+          {children}
+        </div>
+        <div className="hidden lg:block">
+          {children}
+        </div>
       </main>
       <MobileNav />
     </div>

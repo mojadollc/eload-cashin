@@ -79,7 +79,7 @@ export default function EloadPage() {
   const otherNets  = networks.filter(n => !mobileNets.includes(n) && !gameNets.includes(n) && !cableNets.includes(n));
 
   if (!loading && wallet !== null && Number(wallet?.availableBalance ?? 0) <= 0) return (
-    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center px-6 space-y-5 pb-24">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center px-6 space-y-5 ">
       <div className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center">
         <span className="text-4xl">💳</span>
       </div>
@@ -131,7 +131,7 @@ export default function EloadPage() {
 
   // ── BROWSE ──────────────────────────────────────────────────────────────────
   if (step === "browse") return (
-    <div className="min-h-screen bg-[#F7F9FA] flex flex-col pb-24">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col ">
       {/* Header */}
       <div className="bg-[#038E80] px-4 pt-6 pb-4">
         <div className="flex items-center justify-between">
@@ -276,7 +276,7 @@ export default function EloadPage() {
     const minLen = selectedProduct?.addressMin || 10;
     const maxLen = selectedProduct?.addressMax || 11;
     return (
-      <div className="min-h-screen bg-[#F7F9FA] flex flex-col pb-24">
+      <div className="min-h-screen bg-[#F7F9FA] flex flex-col ">
         <div className="bg-[#038E80] px-4 pt-6 pb-4 flex items-center gap-3">
           <button onClick={() => setStep("browse")} className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <ChevronLeft className="h-5 w-5 text-white" />
@@ -317,7 +317,7 @@ export default function EloadPage() {
 
   // ── CONFIRM ──────────────────────────────────────────────────────────────────
   if (step === "confirm") return (
-    <div className="min-h-screen bg-[#F7F9FA] flex flex-col pb-24">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col ">
       <div className="bg-[#038E80] px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => setStep("phone")} className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
           <ChevronLeft className="h-5 w-5 text-white" />
@@ -362,7 +362,7 @@ export default function EloadPage() {
 
   // ── PROCESSING ───────────────────────────────────────────────────────────────
   if (step === "processing") return (
-    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 pb-24">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 ">
       <div className="relative">
         <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: networkColor }} />
         <div className="relative w-24 h-24 rounded-full flex items-center justify-center" style={{ backgroundColor: networkColor }}>
@@ -380,7 +380,7 @@ export default function EloadPage() {
 
   // ── SUCCESS ──────────────────────────────────────────────────────────────────
   if (step === "success") return (
-    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 pb-24">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 ">
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-green-100 animate-pulse" />
         <div className="relative w-28 h-28 rounded-full bg-green-500 flex items-center justify-center shadow-xl shadow-green-500/30">
@@ -410,7 +410,7 @@ export default function EloadPage() {
 
   // ── FAILED ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 pb-24">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 ">
       <div className="w-28 h-28 rounded-full bg-red-500 flex items-center justify-center shadow-xl shadow-red-500/30">
         <svg className="w-14 h-14 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
