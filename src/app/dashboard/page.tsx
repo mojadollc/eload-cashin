@@ -54,11 +54,11 @@ export default function DashboardPage() {
     Promise.all([
       api.get("/api/wallet"),
       api.get("/api/transactions?limit=5"),
+      api.post("/api/wallet/fund/cancel-stale", {}),
       api.get("/api/wallet/fund/pending"),
-    ]).then(([w, d, p]) => {
+    ]).then(([w, d, , p]) => {
       setWallet(w);
       setTransactions(d?.transactions || []);
-      // Only show banner if transaction is genuinely still PENDING
       if (p?.transactionNumber) {
         fetch("/api/wallet/fund/check", {
           method: "POST",

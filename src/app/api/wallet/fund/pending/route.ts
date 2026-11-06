@@ -7,8 +7,15 @@ import { TransactionStatus } from "@/types/enums";
 // Returns the most recent PENDING wallet fund transaction, if any.
 // Used by dashboard to show a "payment in progress" banner.
 export const GET = requireAuth(async (_req: NextRequest, payload: JwtPayload) => {
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
   const txn = await prisma.transaction.findFirst({
-    where: { userId: payload.userId, type: "WALLET_FUND", status: TransactionStatus.PENDING },
+    where: {
+      userId: payload.userId,
+      type: "WALLET_FUND",
+      status: TransactionStatus.PENDING,
+      createdAt: { gt: twoHoursAgo },
+    },
     orderBy: { createdAt: "desc" },
   });
 

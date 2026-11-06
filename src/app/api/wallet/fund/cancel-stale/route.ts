@@ -21,7 +21,9 @@ export const POST = requireAuth(async (_req: NextRequest, payload: JwtPayload) =
 
   for (const txn of pending) {
     const sessionId = txn.fundingTxn?.paymongoLinkId;
-    if (!sessionId) {
+
+    // No session ID or old payment link ID (link_*) — cancel immediately
+    if (!sessionId || !sessionId.startsWith("cs_")) {
       await prisma.transaction.update({ where: { id: txn.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
       continue;
     }
