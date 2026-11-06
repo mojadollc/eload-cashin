@@ -15,20 +15,25 @@ export async function POST(req: NextRequest) {
   const payload = JSON.parse(rawBody);
   const eventType: string = payload?.data?.attributes?.type || "";
 
-  if (!["payment.paid", "link.payment.paid"].includes(eventType)) {
+  if (!["payment.paid", "link.payment.paid", "checkout_session.payment.paid"].includes(eventType)) {
     return NextResponse.json({ ok: true });
   }
 
-  // Both payment.paid and link.payment.paid have the PAYMENT object as data
-  // See: https://docs.paymongo.com/docs/developer-tools-webhooks
-  const paymentData = payload?.data?.attributes?.data;
+  // For checkout_session.payment.paid, data is the checkout session object
+  // For payment.paid / link.payment.paid, data is the payment object
+  const isCheckoutEvent = eventType === "checkout_session.payment.paid";
+  const paymentData = isCheckoutEvent
+    ? payload?.data?.attributes?.data?.attributes?.payments?.[0]
+    : payload?.data?.attributes?.data;
   if (!paymentData) return NextResponse.json({ ok: true });
 
   const paymongoPaymentId: string = paymentData.id || "";
-  // source.id = the payment link that generated this payment
-  const paymongoLinkId: string = paymentData.attributes?.source?.id || "";
-  // remarks = the externalId/txnNumber we set when creating the link
-  const remarks: string = paymentData.attributes?.remarks || paymentData.attributes?.description || "";
+  const paymongoLinkId: string = isCheckoutEvent
+    ? (payload?.data?.attributes?.data?.id || "")
+    : (paymentData.attributes?.source?.id || "");
+  const remarks: string = isCheckoutEvent
+    ? (payload?.data?.attributes?.data?.attributes?.reference_number || "")
+    : (paymentData.attributes?.remarks || paymentData.attributes?.description || "");
   const txnMatch = remarks.match(/WF-[\w-]+/);
   const txnNumber: string = txnMatch ? txnMatch[0] : remarks.trim();
 
@@ -88,23 +93,22 @@ export async function POST(req: NextRequest) {
 
   const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: transaction.userId } });
 
-  await prisma.$transaction(async (tx: any) => {
-    await tx.transaction.update({
-      where: { id: transaction.id },
-      data: {
-        status: TransactionStatus.SUCCESS,
-        completedAt: new Date(),
-        providerReference: paymongoPaymentId,
-      },
-    });
-    await tx.fundingTransaction.update({
-      where: { transactionId: transaction.id },
-      data: { paymongoPaymentId, paidAt: new Date() },
-    });
-    await tx.providerWebhook.update({
-      where: { id: webhook.id },
-      data: { processed: true, processedAt: new Date() },
-    });
+  // Atomic guard: only update if still PENDING to prevent double-credit with /check polling
+  const updated = await prisma.transaction.updateMany({
+    where: { id: transaction.id, status: TransactionStatus.PENDING },
+    data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: paymongoPaymentId },
+  });
+
+  await prisma.providerWebhook.update({
+    where: { id: webhook.id },
+    data: { processed: true, processedAt: new Date() },
+  });
+
+  if (updated.count === 0) return NextResponse.json({ ok: true }); // already credited
+
+  await prisma.fundingTransaction.update({
+    where: { transactionId: transaction.id },
+    data: { paymongoPaymentId, paidAt: new Date() },
   });
 
   await creditWallet(

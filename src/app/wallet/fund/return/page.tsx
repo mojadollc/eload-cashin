@@ -28,6 +28,13 @@ function ReturnContent() {
   useEffect(() => {
     if (!ref) { router.replace("/wallet"); return; }
 
+    // Cancel redirect from PayMongo — show failed immediately, no polling needed
+    if (failed === "1") {
+      api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).catch(() => {});
+      setStatus("expired");
+      return;
+    }
+
     let attempts = 0;
     const MAX_ATTEMPTS = 40; // 40 × 3s = 2 minutes
 

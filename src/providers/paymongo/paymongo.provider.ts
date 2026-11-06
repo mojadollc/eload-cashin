@@ -24,35 +24,44 @@ const client = axios.create({
 
 // ── Wallet Funding ────────────────────────────────────────────────────────────
 
-export interface CreatePaymentLinkParams {
+export interface CreateCheckoutSessionParams {
   externalId: string;
   amount: number;
   description: string;
-  successUrl?: string;
-  failureUrl?: string;
+  successUrl: string;
+  cancelUrl: string;
 }
 
-export async function createPaymentLink(params: CreatePaymentLinkParams) {
+export async function createCheckoutSession(params: CreateCheckoutSessionParams) {
   try {
-    const { data } = await client.post("/links", {
+    const { data } = await client.post("/checkout_sessions", {
       data: {
         attributes: {
-          amount: Math.round(params.amount * 100),
-          description: params.description,
-          remarks: params.externalId,
-          ...(params.successUrl && { redirect: { success: params.successUrl, failed: params.failureUrl || params.successUrl } }),
+          billing: { name: "CashIn Tap Customer" },
+          line_items: [{
+            currency: "PHP",
+            amount: Math.round(params.amount * 100),
+            description: params.description,
+            name: "Wallet Funding",
+            quantity: 1,
+          }],
+          payment_method_types: ["card", "gcash", "grab_pay", "paymaya", "dob", "dob_ubp", "billease", "qrph"],
+          success_url: params.successUrl,
+          cancel_url: params.cancelUrl,
+          reference_number: params.externalId,
+          metadata: { transaction_number: params.externalId },
         },
       },
     });
     return data.data;
   } catch (err: any) {
     const pmError = err?.response?.data?.errors?.[0];
-    throw new Error(pmError?.detail || pmError?.code || "PayMongo payment link creation failed");
+    throw new Error(pmError?.detail || pmError?.code || "PayMongo checkout session creation failed");
   }
 }
 
-export async function getPaymentLink(linkId: string) {
-  const { data } = await client.get(`/links/${linkId}`);
+export async function getCheckoutSession(sessionId: string) {
+  const { data } = await client.get(`/checkout_sessions/${sessionId}`);
   return data.data;
 }
 
