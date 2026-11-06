@@ -24,7 +24,14 @@ export async function POST(req: NextRequest) {
   }
 
   const sessionId = txn.fundingTxn?.paymongoLinkId;
-  if (!sessionId) return NextResponse.json({ status: "pending" });
+  if (!sessionId) return NextResponse.json({ status: "pending", debug: "no_session_id" });
+
+  const isCheckoutSession = sessionId.startsWith("cs_");
+
+  if (!isCheckoutSession) {
+    // Old payment link — can't poll status. Tell frontend to go to wallet to check.
+    return NextResponse.json({ status: "pending", debug: "legacy_link_id", sessionId });
+  }
 
   try {
     const session = await getCheckoutSession(sessionId);
@@ -40,9 +47,8 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ status: "expired" });
     }
-  } catch {
-    // PayMongo unreachable — keep polling
+    return NextResponse.json({ status: "pending", debug: pmStatus });
+  } catch (err: any) {
+    return NextResponse.json({ status: "pending", debug: "paymongo_error", error: err?.message });
   }
-
-  return NextResponse.json({ status: "pending" });
 }
