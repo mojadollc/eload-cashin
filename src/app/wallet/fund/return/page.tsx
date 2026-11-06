@@ -28,7 +28,8 @@ function ReturnContent() {
     }
 
     let attempts = 0;
-    const MAX_ATTEMPTS = 40; // 40 × 3s = 2 minutes
+    const MAX_ATTEMPTS = 40;
+    let timer: ReturnType<typeof setTimeout>;
 
     const check = async () => {
       try {
@@ -36,7 +37,7 @@ function ReturnContent() {
         if (res?.status === "paid") {
           setAmount(res.amount || 0);
           setStatus("paid");
-          setTimeout(() => router.replace("/wallet?funded=1"), 1500);
+          setTimeout(() => router.replace("/wallet?funded=1"), 2000);
           return;
         }
         if (res?.status === "expired") {
@@ -52,10 +53,12 @@ function ReturnContent() {
         setStatus("pending");
         return;
       }
-      setTimeout(check, 3000);
+      timer = setTimeout(check, 2000);
     };
 
-    check();
+    // Small initial delay to let webhook process before first poll
+    timer = setTimeout(check, 1500);
+    return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── CHECKING ─────────────────────────────────────────────────────────────────

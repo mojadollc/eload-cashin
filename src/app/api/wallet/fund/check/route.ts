@@ -25,13 +25,18 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return NextResponse.json({ status: "expired" });
   }
 
-  // Still pending — check PayMongo directly so we can detect expired sessions
+  // Still pending — check PayMongo directly
   const sessionId = txn.fundingTxn?.paymongoLinkId;
   if (!sessionId) return NextResponse.json({ status: "pending" });
 
   try {
     const session = await getCheckoutSession(sessionId);
     const pmStatus: string = session.attributes?.status || "";
+
+    if (pmStatus === "succeeded") {
+      // Webhook will credit the wallet — we just tell the frontend it's paid
+      return NextResponse.json({ status: "paid", amount: Number(txn.grossAmount) });
+    }
 
     if (pmStatus === "expired") {
       await prisma.transaction.update({
