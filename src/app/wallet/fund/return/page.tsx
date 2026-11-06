@@ -14,9 +14,16 @@ function ReturnContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("checking");
   const [amount, setAmount] = useState(0);
+  const [cancelling, setCancelling] = useState(false);
 
   const ref = searchParams.get("ref");
   const failed = searchParams.get("failed");
+
+  const cancelAndGoHome = async () => {
+    setCancelling(true);
+    if (ref) await api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).catch(() => {});
+    router.replace("/dashboard");
+  };
 
   useEffect(() => {
     if (!ref) { router.replace("/wallet"); return; }
@@ -63,9 +70,16 @@ function ReturnContent() {
       </div>
       <div>
         <h2 className="text-2xl font-bold text-gray-800">Verifying Payment</h2>
-        <p className="text-gray-400 mt-2 text-sm">Waiting for QRPh confirmation...</p>
+        <p className="text-gray-400 mt-2 text-sm">Waiting for payment confirmation...</p>
         <p className="text-xs text-gray-300 mt-3">This may take a few seconds. Do not close this screen.</p>
       </div>
+      <button
+        onClick={cancelAndGoHome}
+        disabled={cancelling}
+        className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+      >
+        <Home size={15} /> {cancelling ? "Cancelling..." : "Cancel & Go Home"}
+      </button>
     </div>
   );
 

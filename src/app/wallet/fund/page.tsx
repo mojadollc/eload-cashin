@@ -2,19 +2,23 @@
 import { useState, useEffect, useRef } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { useAuth } from "@/components/shared/auth-context";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 const PENDING_KEY = "pending_fund_txn";
 
 export default function FundWalletPage() {
   const api = useApi();
+  const router = useRouter();
   const { accessToken } = useAuth();
   const [amount, setAmount] = useState<number>(1000);
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
   const [fee, setFee] = useState(0);
   const pendingTxn = useRef<string | null>(null);
@@ -26,8 +30,6 @@ export default function FundWalletPage() {
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Cancel only when user navigates BACK (pageshow from bfcache or fresh mount after back-nav)
-    // Do NOT use visibilitychange — it fires when the tab is hidden during redirect too
     const cancelPending = () => {
       const txn = sessionStorage.getItem(PENDING_KEY);
       if (txn) {
@@ -35,15 +37,8 @@ export default function FundWalletPage() {
         api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
       }
     };
-
-    // pageshow fires when page is restored from bfcache (back button)
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) cancelPending();
-    };
-
-    // Fresh mount after back-nav (non-bfcache browsers)
+    const handlePageShow = (e: PageTransitionEvent) => { if (e.persisted) cancelPending(); };
     cancelPending();
-
     window.addEventListener("pageshow", handlePageShow);
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -53,7 +48,6 @@ export default function FundWalletPage() {
     try {
       const data = await api.post("/api/wallet/fund", { amount });
       if (data?.checkoutUrl) {
-        // Store txn so we can cancel if user comes back without paying
         pendingTxn.current = data.transactionNumber;
         sessionStorage.setItem(PENDING_KEY, data.transactionNumber);
         window.location.href = data.checkoutUrl;
@@ -67,9 +61,25 @@ export default function FundWalletPage() {
     }
   };
 
+  const handleGoHome = async () => {
+    setCancelling(true);
+    const txn = sessionStorage.getItem(PENDING_KEY);
+    if (txn) {
+      sessionStorage.removeItem(PENDING_KEY);
+      await api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
+    }
+    router.replace("/dashboard");
+  };
+
   return (
     <div className="p-4 lg:p-8 max-w-md mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Fund Wallet</h1>
+      <div className="flex items-center gap-3">
+        <button onClick={handleGoHome} disabled={cancelling}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50">
+          <ArrowLeft size={16} /> Home
+        </button>
+        <h1 className="text-2xl font-bold">Fund Wallet</h1>
+      </div>
 
       <Card>
         <CardContent className="pt-6 space-y-5">
