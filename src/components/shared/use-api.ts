@@ -25,6 +25,7 @@ export function useApi() {
     get: (url: string) => request(url),
     post: (url: string, body: unknown) => request(url, { method: "POST", body: JSON.stringify(body) }),
     put: (url: string, body: unknown) => request(url, { method: "PUT", body: JSON.stringify(body) }),
+    patch: (url: string, body: unknown) => request(url, { method: "PATCH", body: JSON.stringify(body) }),
     del: (url: string) => request(url, { method: "DELETE" }),
   };
 }
