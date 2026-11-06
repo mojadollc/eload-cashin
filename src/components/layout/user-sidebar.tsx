@@ -5,7 +5,7 @@ import { useAuth } from "@/components/shared/auth-context";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Wallet, Smartphone, SendHorizonal,
-  ArrowLeftRight, Receipt, Bell, UserCircle2, LogOut,
+  ArrowLeftRight, Receipt, Bell, UserCircle2, LogOut, HeadphonesIcon,
 } from "lucide-react";
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/cashout",       icon: SendHorizonal,   label: "Send" },
   { href: "/transfer",      icon: ArrowLeftRight,  label: "Transfer" },
   { href: "/transactions",  icon: Receipt,         label: "Transactions" },
+  { href: "/support",       icon: HeadphonesIcon,  label: "Support" },
   { href: "/notifications", icon: Bell,            label: "Notifications" },
   { href: "/profile",       icon: UserCircle2,     label: "Profile" },
 ];

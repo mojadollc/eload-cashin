@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/shared/auth-context";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, Wallet, Smartphone, ArrowDownCircle, List, DollarSign, BarChart2, Settings, FileText, LogOut, Shield, Radio } from "lucide-react";
+import { LayoutDashboard, Users, Wallet, Smartphone, ArrowDownCircle, List, DollarSign, BarChart2, Settings, FileText, LogOut, Shield, Radio, HeadphonesIcon } from "lucide-react";
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -15,6 +15,7 @@ const navItems = [
   { href: "/admin/cashout", icon: ArrowDownCircle, label: "Send" },
   { href: "/admin/fees", icon: DollarSign, label: "Fees" },
   { href: "/admin/reports", icon: BarChart2, label: "Reports" },
+  { href: "/admin/support", icon: HeadphonesIcon, label: "Support" },
   { href: "/admin/settings", icon: Settings, label: "Settings" },
   { href: "/admin/audit", icon: FileText, label: "Audit Logs" },
 ];
