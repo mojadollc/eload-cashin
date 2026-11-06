@@ -142,7 +142,6 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center items-center gap-6 lg:gap-10">
             {[
               { name: "PayMongo", img: "/providers/paymongo.png" },
-              { name: "GBits",    img: "/providers/gbits.png" },
               { name: "Globe",    img: "/providers/globe.png" },
               { name: "Smart",    img: "/providers/smart.png" },
               { name: "DITO",     img: "/providers/dito.png" },
@@ -156,6 +155,15 @@ export default function LandingPage() {
                 <span className="text-xs font-semibold text-gray-400">{name}</span>
               </div>
             ))}
+            {/* Xendit — inline SVG logo */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center p-2 hover:shadow-md transition-shadow">
+                <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+                  <text x="0" y="26" fontFamily="Arial,sans-serif" fontSize="28" fontWeight="700" fill="#0066FF">xendit</text>
+                </svg>
+              </div>
+              <span className="text-xs font-semibold text-gray-400">Xendit</span>
+            </div>
           </div>
         </div>
       </section>
