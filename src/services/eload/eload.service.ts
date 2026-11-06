@@ -49,7 +49,10 @@ export async function processEload(transactionId: string, holdId: string) {
   await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING } });
 
   try {
-    const result = await purchaseLoad({ promoId: (txn.metadata as any)?.promoId, mobileNumber: txn.eloadTxn.mobileNumber, amount: Number(txn.eloadTxn.loadAmount), externalReference: txn.transactionNumber });
+    const params = { promoId: (txn.metadata as any)?.promoId, mobileNumber: txn.eloadTxn.mobileNumber, amount: Number(txn.eloadTxn.loadAmount), externalReference: txn.transactionNumber };
+    console.log(`[eload] calling purchaseLoad:`, JSON.stringify(params));
+    const result = await purchaseLoad(params);
+    console.log(`[eload] purchaseLoad result:`, JSON.stringify(result));
 
     await prisma.$transaction(async (tx: any) => {
       await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.transaction_id, responsePayload: result, status: result.status, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });
@@ -59,7 +62,8 @@ export async function processEload(transactionId: string, holdId: string) {
 
     await consumeHold(holdId, transactionId, `E-load: ${txn.eloadTxn.network} ₱${txn.eloadTxn.loadAmount}`);
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
+    console.error(`[eload] processEload FAILED txn=${transactionId}:`, error?.message || error);
     await releaseHold(holdId);
     await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.FAILED, failedAt: new Date() } });
     return { success: false, error };

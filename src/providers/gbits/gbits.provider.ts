@@ -178,7 +178,8 @@ export async function refreshSkuCache(): Promise<{ count: number; refreshedAt: s
 
 export async function purchaseLoad(params: PurchaseLoadParams) {
   const token = await getToken();
-  const txnId = `${GBITS_BUSINESS_CODE}${new Date().toISOString().slice(0, 10).replace(/-/g, "")}${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  // Use externalReference as the GBits transactionId for traceability
+  const txnId = params.externalReference.replace(/[^A-Z0-9]/gi, "").slice(0, 30).toUpperCase();
 
   const query = new URLSearchParams({ address: params.mobileNumber, transactionId: txnId });
   if (params.promoId) {
@@ -186,6 +187,8 @@ export async function purchaseLoad(params: PurchaseLoadParams) {
   } else {
     query.append("amount", String(params.amount));
   }
+
+  console.log(`[gbits] purchaseLoad URL: POST /eload/buy?${query.toString()}`);
 
   let r = await fetch(`${GBITS_API_URL}/eload/buy?${query.toString()}`, {
     method: "POST",
@@ -200,6 +203,7 @@ export async function purchaseLoad(params: PurchaseLoadParams) {
     });
   }
   const result = await r.json();
+  console.log(`[gbits] purchaseLoad response HTTP ${r.status}:`, JSON.stringify(result));
 
   if (result.errorCode === 0) {
     return { status: "completed", transaction_id: result.content?.transactionId || txnId, balance: result.content?.balance ?? null };
