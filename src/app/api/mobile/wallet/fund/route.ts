@@ -7,7 +7,7 @@ import { z } from "zod";
 import { TransactionType, TransactionStatus, Provider, FeeService } from "@/types/enums";
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
 import { calculateFee } from "@/services/fees/fee.service";
-import { createPaymentLink } from "@/providers/paymongo/paymongo.provider";
+import { createCheckoutSession } from "@/providers/paymongo/paymongo.provider";
 
 const schema = z.object({
   amount: z.number().min(100).max(50000),
@@ -50,26 +50,26 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return txn;
   });
 
-  let link;
+  let session;
   try {
-    link = await createPaymentLink({
+    session = await createCheckoutSession({
       externalId: txnNumber,
       amount: totalAmount,
       description: fee > 0
         ? `CashIn Tap Wallet Funding - ${txnNumber} (Load: ₱${amount.toFixed(2)} + Fee: ₱${fee.toFixed(2)})`
         : `CashIn Tap Wallet Funding - ${txnNumber}`,
       successUrl: successUrl ?? `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}`,
-      failureUrl: failureUrl ?? `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}&failed=1`,
+      cancelUrl: failureUrl ?? `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}&failed=1`,
     });
   } catch (err: any) {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.FAILED } });
     return fail(err.message || "Payment provider error", 502);
   }
 
-  const checkoutUrl = link.attributes?.checkout_url || link.attributes?.url;
+  const checkoutUrl = session.attributes?.checkout_url;
   await prisma.fundingTransaction.update({
     where: { transactionId: transaction.id },
-    data: { paymongoLinkId: link.id, checkoutUrl, paymentMethod: paymentMethod || "" },
+    data: { paymongoLinkId: session.id, checkoutUrl, paymentMethod: paymentMethod || "" },
   });
 
   return ok({ checkoutUrl, transactionNumber: txnNumber, amount, fee, total: totalAmount });
