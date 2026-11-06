@@ -16,7 +16,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   });
 
   if (!txn) return NextResponse.json({ status: "not_found" }, { status: 404 });
-  if (txn.status === TransactionStatus.SUCCESS) return NextResponse.json({ status: "paid" });
+  if (txn.status === TransactionStatus.SUCCESS) return NextResponse.json({ status: "paid", amount: Number(txn.grossAmount) });
 
   const linkId = txn.fundingTxn?.paymongoLinkId;
   if (!linkId) return NextResponse.json({ status: txn.status.toLowerCase() });
@@ -28,14 +28,15 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return NextResponse.json({ status: txn.status.toLowerCase() });
   }
 
-  const pmStatus = link.attributes?.status;
+  // PayMongo payment link statuses: active | paid | archived
+  const pmStatus: string = link.attributes?.status || "";
 
   if (pmStatus === "paid") {
     const wallet = await prisma.wallet.findUnique({ where: { userId: txn.userId } });
     if (!wallet) return NextResponse.json({ status: "error" }, { status: 500 });
 
     const fresh = await prisma.transaction.findUnique({ where: { id: txn.id } });
-    if (fresh?.status === TransactionStatus.SUCCESS) return NextResponse.json({ status: "paid" });
+    if (fresh?.status === TransactionStatus.SUCCESS) return NextResponse.json({ status: "paid", amount: Number(txn.grossAmount) });
 
     await prisma.$transaction(async (tx: any) => {
       await tx.transaction.update({
@@ -70,5 +71,5 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return NextResponse.json({ status: "expired" });
   }
 
-  return NextResponse.json({ status: "pending", paymongoStatus: pmStatus });
+  return NextResponse.json({ status: "pending", pmStatus });
 });

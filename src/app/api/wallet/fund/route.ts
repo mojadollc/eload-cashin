@@ -15,7 +15,6 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  // Wallet must exist and be active to fund
   const wallet = await prisma.wallet.findUnique({ where: { userId: payload.userId } });
   if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
   if (wallet.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active" }, { status: 403 });
@@ -50,7 +49,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
       externalId: txnNumber,
       amount: totalAmount,
       description: fee > 0
-        ? `CashIn Tap Wallet Funding - ${txnNumber} (Load: ₱${amount.toFixed(2)} + Service Fee: ₱${fee.toFixed(2)})`
+        ? `CashIn Tap Wallet Funding - ${txnNumber} (Load: ₱${amount.toFixed(2)} + Fee: ₱${fee.toFixed(2)})`
         : `CashIn Tap Wallet Funding - ${txnNumber}`,
       successUrl: `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}`,
       failureUrl: `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}&failed=1`,

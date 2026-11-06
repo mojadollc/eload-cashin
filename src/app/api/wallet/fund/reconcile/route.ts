@@ -6,15 +6,9 @@ import { getPaymentLink } from "@/providers/paymongo/paymongo.provider";
 import { creditWallet } from "@/services/wallet/wallet.service";
 import { TransactionStatus } from "@/types/enums";
 
-// Called on wallet/profile page load to fix any PENDING transactions that were
-// actually paid but missed by the webhook (e.g. user closed PayMongo tab early)
 export const POST = requireAuth(async (_req: NextRequest, payload: JwtPayload) => {
   const pending = await prisma.transaction.findMany({
-    where: {
-      userId: payload.userId,
-      type: "WALLET_FUND",
-      status: TransactionStatus.PENDING,
-    },
+    where: { userId: payload.userId, type: "WALLET_FUND", status: TransactionStatus.PENDING },
     include: { fundingTxn: true },
     orderBy: { createdAt: "desc" },
     take: 20,
@@ -28,10 +22,9 @@ export const POST = requireAuth(async (_req: NextRequest, payload: JwtPayload) =
 
     try {
       const link = await getPaymentLink(linkId);
-      const pmStatus = link.attributes?.status;
+      const status: string = link.attributes?.status || "";
 
-      if (pmStatus === "paid") {
-        // Double-check not already credited (race condition guard)
+      if (status === "paid") {
         const fresh = await prisma.transaction.findUnique({ where: { id: txn.id } });
         if (fresh?.status === TransactionStatus.SUCCESS) continue;
 
@@ -39,14 +32,8 @@ export const POST = requireAuth(async (_req: NextRequest, payload: JwtPayload) =
         if (!wallet) continue;
 
         await prisma.$transaction(async (tx: any) => {
-          await tx.transaction.update({
-            where: { id: txn.id },
-            data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: linkId },
-          });
-          await tx.fundingTransaction.update({
-            where: { transactionId: txn.id },
-            data: { paymongoPaymentId: linkId, paidAt: new Date() },
-          });
+          await tx.transaction.update({ where: { id: txn.id }, data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: linkId } });
+          await tx.fundingTransaction.update({ where: { transactionId: txn.id }, data: { paymongoPaymentId: linkId, paidAt: new Date() } });
         });
 
         await creditWallet(wallet.id, Number(txn.grossAmount), "Wallet Funding", txn.id, txn.transactionNumber);
@@ -61,14 +48,11 @@ export const POST = requireAuth(async (_req: NextRequest, payload: JwtPayload) =
         });
 
         recovered++;
-      } else if (pmStatus === "archived") {
-        await prisma.transaction.update({
-          where: { id: txn.id },
-          data: { status: TransactionStatus.CANCELLED, failedAt: new Date() },
-        });
+      } else if (status === "archived") {
+        await prisma.transaction.update({ where: { id: txn.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
       }
     } catch {
-      // PayMongo API error — skip this txn
+      // PayMongo API error — skip
     }
   }
 

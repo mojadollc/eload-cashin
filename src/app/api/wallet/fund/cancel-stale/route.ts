@@ -21,36 +21,22 @@ export const POST = requireAuth(async (_req: NextRequest, payload: JwtPayload) =
   for (const txn of pending) {
     const linkId = txn.fundingTxn?.paymongoLinkId;
     if (!linkId) {
-      await prisma.transaction.update({
-        where: { id: txn.id },
-        data: { status: TransactionStatus.CANCELLED, failedAt: new Date() },
-      });
+      await prisma.transaction.update({ where: { id: txn.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
       continue;
     }
 
     try {
       const link = await getPaymentLink(linkId);
-      const status = link.attributes?.status;
+      const status: string = link.attributes?.status || "";
 
       if (status === "archived") {
-        await prisma.transaction.update({
-          where: { id: txn.id },
-          data: { status: TransactionStatus.CANCELLED, failedAt: new Date() },
-        });
-      }
-
-      if (status === "paid") {
+        await prisma.transaction.update({ where: { id: txn.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
+      } else if (status === "paid") {
         const wallet = await prisma.wallet.findUnique({ where: { userId: txn.userId } });
         if (wallet) {
           const { creditWallet } = await import("@/services/wallet/wallet.service");
-          await prisma.transaction.update({
-            where: { id: txn.id },
-            data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: linkId },
-          });
-          await prisma.fundingTransaction.update({
-            where: { transactionId: txn.id },
-            data: { paymongoPaymentId: linkId, paidAt: new Date() },
-          });
+          await prisma.transaction.update({ where: { id: txn.id }, data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: linkId } });
+          await prisma.fundingTransaction.update({ where: { transactionId: txn.id }, data: { paymongoPaymentId: linkId, paidAt: new Date() } });
           await creditWallet(wallet.id, Number(txn.grossAmount), "Wallet Funding (recovered)", txn.id, txn.transactionNumber);
         }
       }

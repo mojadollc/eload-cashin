@@ -61,7 +61,8 @@ export async function processCashout(transactionId: string, holdId: string) {
       accountName: txn.cashoutTxn.accountName,
     });
     const resultId = result.id;
-    const resultStatus = result.attributes?.status || "PENDING";
+    // PayMongo disbursement status on creation is inside attributes
+    const resultStatus = result.attributes?.status || result.status || "PENDING";
 
     await prisma.$transaction(async (tx: any) => {
       await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: resultId, responsePayload: result, status: resultStatus, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });
