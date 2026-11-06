@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
             <p className="text-xs text-gray-400">Register these URLs once in your <a href="https://dashboard.paymongo.com/developers" target="_blank" rel="noreferrer" className="text-blue-500 underline">PayMongo Dashboard → Developers → Webhooks</a>.</p>
             <div className="space-y-2">
               <div className="bg-gray-50 rounded-xl px-4 py-3">
-                <p className="text-xs text-gray-400 mb-1">Wallet Funding (payment.paid, link.payment.paid)</p>
+                <p className="text-xs text-gray-400 mb-1">Wallet Funding (checkout_session.payment.paid, payment.paid)</p>
                 <p className="font-mono text-sm text-gray-800 break-all">{values.APP_URL || "https://yourdomain.com"}/api/webhooks/paymongo/payment</p>
               </div>
               <div className="bg-gray-50 rounded-xl px-4 py-3">
