@@ -211,7 +211,19 @@ export async function purchaseLoad(params: PurchaseLoadParams) {
   if (result.errorCode === 105) {
     return { status: "pending", transaction_id: result.content?.transactionId || txnId, balance: result.content?.balance ?? null };
   }
-  throw new Error(result.content?.description || result.message || `GBits error ${result.errorCode}`);
+  // Map known GBits error codes to clear messages
+  const gbitsErrors: Record<number, string> = {
+    100: "GBits: Invalid request parameters.",
+    101: "GBits: Invalid mobile number format.",
+    102: "GBits: Product/promo not found.",
+    103: "GBits: Network not supported.",
+    104: "GBits wallet has insufficient balance. Please contact support to top up.",
+    106: "GBits: Duplicate transaction ID.",
+    107: "GBits: Service temporarily unavailable.",
+    108: "GBits: Mobile number not eligible for this promo.",
+  };
+  const msg = gbitsErrors[result.errorCode] || result.content?.description || result.message || `GBits error ${result.errorCode}`;
+  throw new Error(msg);
 }
 
 export async function getGbitsBalance(): Promise<{ balance: number; currency: string } | null> {

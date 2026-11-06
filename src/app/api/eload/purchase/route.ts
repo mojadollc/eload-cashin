@@ -6,6 +6,7 @@ import { z } from "zod";
 import { initiateEload } from "@/services/eload/eload.service";
 import { calculateFee } from "@/services/fees/fee.service";
 import { FeeService } from "@/types/enums";
+import { formatCurrency } from "@/lib/utils";
 
 const schema = z.object({
   mobileNumber: z.string().min(10),
@@ -22,15 +23,18 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   const { mobileNumber, promoId, productCode, network, loadAmount } = parsed.data;
 
-  // Block if wallet has zero or no balance
+  // Block if wallet has insufficient balance
   const wallet = await prisma.wallet.findUnique({ where: { userId: payload.userId } });
-  if (!wallet || wallet.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active" }, { status: 403 });
-  if (Number(wallet.availableBalance) <= 0) return NextResponse.json({ error: "Insufficient balance. Please fund your wallet first." }, { status: 403 });
+  if (!wallet || wallet.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active." }, { status: 403 });
+
+  const fee = await calculateFee(FeeService.ELOAD, loadAmount);
+  const totalRequired = loadAmount + fee;
+  if (Number(wallet.availableBalance) < totalRequired)
+    return NextResponse.json({ error: `Insufficient balance. You need ${formatCurrency(totalRequired)} but only have ${formatCurrency(Number(wallet.availableBalance))}.` }, { status: 403 });
 
   try {
     const transaction = await initiateEload(payload.userId, mobileNumber, productCode, network, loadAmount, promoId);
-    const fee = await calculateFee(FeeService.ELOAD, loadAmount);
-    return NextResponse.json({ transactionNumber: transaction.transactionNumber, status: transaction.status, fee, total: loadAmount + fee });
+    return NextResponse.json({ transactionNumber: transaction.transactionNumber, status: transaction.status, fee, total: totalRequired });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }

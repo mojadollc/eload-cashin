@@ -63,9 +63,13 @@ export async function processEload(transactionId: string, holdId: string) {
     await consumeHold(holdId, transactionId, `E-load: ${txn.eloadTxn.network} ₱${txn.eloadTxn.loadAmount}`);
     return { success: true };
   } catch (error: any) {
-    console.error(`[eload] processEload FAILED txn=${transactionId}:`, error?.message || error);
+    const reason: string = error?.message || "Unknown error";
+    console.error(`[eload] processEload FAILED txn=${transactionId}:`, reason);
     await releaseHold(holdId);
-    await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.FAILED, failedAt: new Date() } });
-    return { success: false, error };
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { status: TransactionStatus.FAILED, failedAt: new Date(), metadata: { ...(txn.metadata as any), failureReason: reason } },
+    });
+    return { success: false, error: reason };
   }
 }
