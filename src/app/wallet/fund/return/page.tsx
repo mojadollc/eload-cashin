@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useApi } from "@/components/shared/use-api";
 import { formatCurrency } from "@/lib/utils";
 import { CheckCircle, XCircle, Clock, Loader2, Home, Wallet } from "lucide-react";
 import Link from "next/link";
@@ -9,7 +8,6 @@ import Link from "next/link";
 type Status = "checking" | "paid" | "pending" | "expired" | "failed";
 
 function ReturnContent() {
-  const api = useApi();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("checking");
@@ -21,11 +19,7 @@ function ReturnContent() {
   useEffect(() => {
     if (!ref) { router.replace("/wallet"); return; }
 
-    // If PayMongo sent failed=1 (cancel_url), show expired immediately
-    if (failed === "1") {
-      setStatus("expired");
-      return;
-    }
+    if (failed === "1") { setStatus("expired"); return; }
 
     let attempts = 0;
     const MAX_ATTEMPTS = 40;
@@ -33,14 +27,19 @@ function ReturnContent() {
 
     const check = async () => {
       try {
-        const res: any = await api.post("/api/wallet/fund/check", { transactionNumber: ref });
-        if (res?.status === "paid") {
-          setAmount(res.amount || 0);
+        const res = await fetch("/api/wallet/fund/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transactionNumber: ref }),
+        });
+        const data = await res.json();
+        if (data?.status === "paid") {
+          setAmount(data.amount || 0);
           setStatus("paid");
           setTimeout(() => router.replace("/wallet?funded=1"), 2000);
           return;
         }
-        if (res?.status === "expired") {
+        if (data?.status === "expired") {
           setStatus("expired");
           return;
         }
@@ -49,14 +48,10 @@ function ReturnContent() {
       }
 
       attempts++;
-      if (attempts >= MAX_ATTEMPTS) {
-        setStatus("pending");
-        return;
-      }
+      if (attempts >= MAX_ATTEMPTS) { setStatus("pending"); return; }
       timer = setTimeout(check, 2000);
     };
 
-    // Small initial delay to let webhook process before first poll
     timer = setTimeout(check, 1500);
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
