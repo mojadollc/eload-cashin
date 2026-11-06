@@ -25,7 +25,10 @@ export const GET = requireAuth(async (_req: NextRequest, _payload: JwtPayload, c
   });
 
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  return NextResponse.json({ user });
+
+  // Strip sensitive fields
+  const { passwordHash, twoFaSecret, ...safeUser } = user as any;
+  return NextResponse.json({ user: safeUser });
 }, ADMIN_ROLES);
 
 export const PATCH = requireAuth(async (req: NextRequest, payload: JwtPayload, ctx: any) => {
