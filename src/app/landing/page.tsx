@@ -21,9 +21,9 @@ const steps = [
 ];
 
 const testimonials = [
-  { name: "Maria Santos", role: "Small Business Owner", text: "CashIn Tap made it so easy to manage my daily transactions. The e-load feature saves me so much time!", rating: 5 },
-  { name: "Juan Dela Cruz", role: "Freelancer", text: "Cashing out my earnings is now instant. No more waiting days for bank transfers.", rating: 5 },
-  { name: "Ana Reyes", role: "Online Seller", text: "The wallet system is transparent and I can see every transaction clearly. Very trustworthy.", rating: 5 },
+  { name: "Maria Santos", role: "Sari-Sari Store Owner, Quezon City", text: "Dati palagi akong nauubusan ng load para ibenta. Ngayon, one tap lang sa CashIn Tap tapos may load na agad ang customers ko!", rating: 5, avatar: "/avatars/maria.jpg" },
+  { name: "Lorna Dela Cruz", role: "Sari-Sari Store Owner, Cebu", text: "Ang dali mag-cash out ng kita ko dito. Hindi na ako nagpupunta pa sa palengke para mag-padala. Sobrang tipid sa oras!", rating: 5, avatar: "/avatars/lorna.jpg" },
+  { name: "Nena Reyes", role: "Sari-Sari Store Owner, Davao", text: "Ang ganda ng wallet system — makikita ko lahat ng transactions ko. Tiwala na tiwala ako sa CashIn Tap para sa tindahan ko.", rating: 5, avatar: "/avatars/nena.jpg" },
 ];
 
 export default function LandingPage() {
@@ -217,7 +217,7 @@ export default function LandingPage() {
             <h2 className="text-4xl font-extrabold">Loved by thousands of Filipinos</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map(({ name, role, text, rating }) => (
+            {testimonials.map(({ name, role, text, rating, avatar }) => (
               <div key={name} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <div className="flex gap-1 mb-4">
                   {Array.from({ length: rating }).map((_, i) => (
@@ -226,9 +226,7 @@ export default function LandingPage() {
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed mb-4">&ldquo;{text}&rdquo;</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#038E80] to-[#058174] rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {name[0]}
-                  </div>
+                  <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover" />
                   <div>
                     <p className="font-semibold text-sm">{name}</p>
                     <p className="text-xs text-gray-400">{role}</p>
