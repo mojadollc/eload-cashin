@@ -1,7 +1,6 @@
 "use client";
 import { useAuth } from "@/components/shared/auth-context";
 import { useApi } from "@/components/shared/use-api";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { User, Phone, Mail, LogOut, ChevronRight, ChevronLeft, Shield, Bell, FileText, X, Calendar, Wallet, Copy, Check, Eye, EyeOff, Smartphone, SendHorizonal, RotateCcw, RefreshCw, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +45,6 @@ function SkeletonRow() {
 export default function ProfilePage() {
   const { user, logout } = useAuth();
   const api = useApi();
-  const router = useRouter();
 
   const [wallet, setWallet] = useState<any>(null);
   const [showCardNumber, setShowCardNumber] = useState(false);
@@ -62,9 +60,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [showDateFilter, setShowDateFilter] = useState(false);
 
-  useEffect(() => { if (!user) router.push("/login"); }, [user, router]);
   if (!user) return null;
-
   const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
 
   const fetchHistory = useCallback(async (p = 1) => {
@@ -89,7 +85,7 @@ export default function ProfilePage() {
   const clearDate = () => { setDateFrom(""); setDateTo(""); setShowDateFilter(false); fetchHistory(1); };
 
   return (
-    <div className="min-h-screen bg-[#F7F9FA]">
+    <div className="min-h-screen bg-[#F7F9FA] pb-20 lg:pb-0">
       {/* Header */}
       <div className="bg-[#038E80] px-4 pt-6 pb-20">
         <h1 className="text-white text-xl font-bold">Profile</h1>
