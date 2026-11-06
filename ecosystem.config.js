@@ -20,14 +20,16 @@ module.exports = {
     {
       name: 'cashin-tap-worker',
       script: 'node_modules/.bin/ts-node',
-      args: 'src/workers/worker.ts',
+      args: '--require tsconfig-paths/register src/workers/worker.ts',
       cwd: '/var/www/cashin-tap',
       env: {
         NODE_ENV: 'production',
+        TS_NODE_PROJECT: 'tsconfig.json',
       },
       instances: 1,
       autorestart: true,
       watch: false,
+      max_memory_restart: '400M',
       error_file: '/var/log/cashin-tap/worker-error.log',
       out_file: '/var/log/cashin-tap/worker-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
