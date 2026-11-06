@@ -3,11 +3,13 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useApi } from "@/components/shared/use-api";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Plus, ArrowUpRight, ArrowDownLeft, Copy, Check, Eye, EyeOff, Smartphone, SendHorizonal, Wallet, RotateCcw, Receipt } from "lucide-react";
+import {
+  Plus, Copy, Check, Eye, EyeOff,
+  Smartphone, SendHorizonal, ArrowLeftRight,
+  Wallet, RotateCcw, RefreshCw, ArrowDownLeft, Receipt,
+} from "lucide-react";
 
 const TX_ICON: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
   ELOAD:       { icon: Smartphone,    color: "text-blue-600",   bg: "bg-blue-50" },
@@ -26,7 +28,13 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-const FILTERS = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND"];
+const FILTERS = [
+  { key: "All", label: "All" },
+  { key: "WALLET_FUND", label: "Funding" },
+  { key: "ELOAD", label: "E-Load" },
+  { key: "CASHOUT", label: "Cash Out" },
+  { key: "REFUND", label: "Refund" },
+];
 
 function WalletContent() {
   const api = useApi();
@@ -36,7 +44,6 @@ function WalletContent() {
   const [filter, setFilter] = useState("All");
   const [showBalance, setShowBalance] = useState(true);
   const [banner, setBanner] = useState<"funded" | "cancelled" | "pending" | null>(null);
-  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const funded = searchParams.get("funded");
@@ -48,131 +55,160 @@ function WalletContent() {
       api.get("/api/wallet/transactions").then(d => setEntries(d?.entries || []));
     };
 
-    // Reconcile any PENDING txns that were actually paid
     api.post("/api/wallet/fund/reconcile", {}).then(() => load());
 
     if (funded === "1") { setBanner("funded"); return; }
-
     if (ref) {
-      // Check Xendit invoice status — covers QRPH delayed settlement
-      setChecking(true);
       setBanner("pending");
       api.post("/api/wallet/fund/check", { transactionNumber: ref }).then((res: any) => {
-        setChecking(false);
-        if (res?.status === "paid") {
-          setBanner("funded");
-          load(); // refresh balance
-        } else if (res?.status === "expired" || failed === "1") {
-          setBanner("cancelled");
-        } else {
-          // Still pending on Xendit (QRPH not yet settled)
-          setBanner("pending");
-        }
+        if (res?.status === "paid") { setBanner("funded"); load(); }
+        else if (res?.status === "expired" || failed === "1") setBanner("cancelled");
+        else setBanner("pending");
       });
       return;
     }
-
-    // Cancel stale only on normal wallet visit (no ref)
     api.post("/api/wallet/fund/cancel-stale", {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const filtered = filter === "All" ? entries : entries.filter((e: any) => {
+    const txType = e.description?.includes("E-Load") ? "ELOAD"
+      : e.description?.includes("Cashout") || e.description?.includes("Send") ? "CASHOUT"
+      : e.description?.includes("Refund") ? "REFUND"
+      : e.entryType === "CREDIT" ? "WALLET_FUND" : "CASHOUT";
+    return txType === filter;
+  });
+
   return (
-    <div className="p-4 lg:p-8 max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Wallet</h1>
-
-      {banner === "funded" && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 font-medium">✅ Wallet funded successfully!</div>
-      )}
-      {banner === "pending" && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700 font-medium flex items-center gap-2">
-          {checking ? "⏳ Checking payment status..." : "🕐 Payment is pending settlement. Your balance will update once confirmed by the payment provider."}
-        </div>
-      )}
-      {banner === "cancelled" && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 font-medium">❌ Payment expired or cancelled.</div>
-      )}
-
-      {/* Wallet Card — uniform style */}
-      <div className="relative rounded-3xl overflow-hidden text-white"
-        style={{ background: "linear-gradient(135deg, #038E80 0%, #026b62 50%, #025a52 100%)" }}>
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
-        <div className="absolute -bottom-10 -left-6 w-36 h-36 rounded-full bg-white/5" />
-        <div className="absolute top-1/2 right-12 w-20 h-20 rounded-full bg-white/5" />
-        <div className="relative p-6">
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <p className="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Available Balance</p>
-              <div className="flex items-center gap-2.5">
-                <span className="text-3xl font-bold tracking-tight">
-                  {showBalance ? formatCurrency(wallet?.availableBalance || 0) : "₱ ••••••"}
-                </span>
-                <button onClick={() => setShowBalance(b => !b)}
-                  className="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-                  {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              {wallet?.pendingBalance > 0 && (
-                <p className="text-white/50 text-xs mt-1">+ {formatCurrency(wallet.pendingBalance)} pending</p>
-              )}
-            </div>
-            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
-              <Wallet size={18} className="text-white" />
-            </div>
-          </div>
-          {wallet?.accountNumber && (
-            <div className="flex items-center gap-2 mb-5">
-              <p className="text-white/70 text-sm font-semibold tracking-[0.18em]">
-                {wallet.accountNumber.replace(/(.{4})/g, "$1 ").trim()}
-              </p>
-              <CopyButton text={wallet.accountNumber} />
-            </div>
-          )}
+    <div className="min-h-screen bg-[#F7F9FA] pb-24">
+      {/* Header */}
+      <div className="bg-[#038E80] px-4 pt-6 pb-24">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-white text-xl font-bold">My Wallet</h1>
           <Link href="/wallet/fund"
-            className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 transition-all text-white text-sm font-semibold px-4 py-2 rounded-xl">
-            <Plus size={15} /> Fund Wallet
+            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all">
+            <Plus size={13} /> Fund
           </Link>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Transaction History</p>
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-            {FILTERS.map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${filter === f ? "bg-[#038E80] text-white" : "bg-gray-100 text-gray-600"}`}>
-                {f === "All" ? "All" : f.replace("_", " ")}
-              </button>
-            ))}
+      <div className="px-4 -mt-20 space-y-4">
+        {/* Wallet Card */}
+        <div className="relative rounded-3xl overflow-hidden text-white shadow-xl"
+          style={{ background: "linear-gradient(135deg, #038E80 0%, #026b62 50%, #025a52 100%)" }}>
+          <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+          <div className="absolute -bottom-10 -left-6 w-36 h-36 rounded-full bg-white/5" />
+          <div className="absolute top-1/2 right-12 w-20 h-20 rounded-full bg-white/5" />
+          <div className="relative p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-white/60 text-xs font-medium uppercase tracking-widest mb-1">Available Balance</p>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-3xl font-bold tracking-tight">
+                    {showBalance ? formatCurrency(wallet?.availableBalance || 0) : "₱ ••••••"}
+                  </span>
+                  <button onClick={() => setShowBalance(b => !b)}
+                    className="text-white/50 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+                    {showBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {wallet?.pendingBalance > 0 && (
+                  <p className="text-white/50 text-xs mt-1">+ {formatCurrency(wallet.pendingBalance)} pending</p>
+                )}
+              </div>
+              <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center">
+                <Wallet size={18} className="text-white" />
+              </div>
+            </div>
+            {wallet?.accountNumber && (
+              <div className="flex items-center gap-2">
+                <p className="text-white/70 text-sm font-semibold tracking-[0.18em]">
+                  {wallet.accountNumber.replace(/(.{4})/g, "$1 ").trim()}
+                </p>
+                <CopyButton text={wallet.accountNumber} />
+              </div>
+            )}
           </div>
-          {entries.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">No transactions yet</p>
+        </div>
+
+        {/* Banners */}
+        {banner === "funded" && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 text-sm text-green-700 font-medium text-center">✅ Wallet funded successfully!</div>
+        )}
+        {banner === "pending" && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-sm text-blue-700 font-medium text-center">🕐 Payment pending confirmation...</div>
+        )}
+        {banner === "cancelled" && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-sm text-red-600 font-medium text-center">❌ Payment expired or cancelled.</div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { href: "/wallet/fund",  icon: Plus,           label: "Fund",     bg: "bg-teal-50",   color: "text-[#038E80]" },
+            { href: "/cashout",      icon: SendHorizonal,  label: "Cash Out", bg: "bg-purple-50", color: "text-purple-600" },
+            { href: "/transfer",     icon: ArrowLeftRight, label: "Transfer", bg: "bg-blue-50",   color: "text-blue-600" },
+          ].map(({ href, icon: Icon, label, bg, color }) => (
+            <Link key={href} href={href}
+              className="bg-white rounded-2xl shadow-sm p-4 flex flex-col items-center gap-2 active:scale-95 transition-all">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${bg}`}>
+                <Icon size={20} className={color} />
+              </div>
+              <span className="text-xs font-semibold text-gray-600">{label}</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Transaction History */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 pt-4 pb-3 border-b border-gray-50">
+            <p className="text-sm font-bold text-gray-800 mb-3">Transaction History</p>
+            <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {FILTERS.map(f => (
+                <button key={f.key} onClick={() => setFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${filter === f.key ? "bg-[#038E80] text-white" : "bg-gray-100 text-gray-500"}`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                <Receipt size={24} className="text-gray-300" />
+              </div>
+              <p className="text-sm font-semibold text-gray-400">No transactions yet</p>
+            </div>
           ) : (
-            <div className="space-y-3">
-              {entries.map((e: any) => {
-                const txType = e.description?.includes("E-Load") ? "ELOAD" : e.description?.includes("Cashout") || e.description?.includes("Send") ? "CASHOUT" : e.description?.includes("Refund") ? "REFUND" : e.entryType === "CREDIT" ? "WALLET_FUND" : "CASHOUT";
-                const meta = TX_ICON[txType] || (e.entryType === "CREDIT" ? TX_ICON.WALLET_FUND : TX_ICON.CASHOUT);
+            <div className="divide-y divide-gray-50">
+              {filtered.map((e: any) => {
+                const txType = e.description?.includes("E-Load") ? "ELOAD"
+                  : e.description?.includes("Cashout") || e.description?.includes("Send") ? "CASHOUT"
+                  : e.description?.includes("Refund") ? "REFUND"
+                  : e.entryType === "CREDIT" ? "WALLET_FUND" : "CASHOUT";
+                const meta = TX_ICON[txType] || TX_ICON.WALLET_FUND;
                 const Icon = meta.icon;
                 return (
-                <div key={e.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${meta.bg}`}>
-                      <Icon size={17} className={meta.color} strokeWidth={2} />
+                  <div key={e.id} className="flex items-center justify-between px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${meta.bg}`}>
+                        <Icon size={18} className={meta.color} strokeWidth={2} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{e.description || "Transaction"}</p>
+                        <p className="text-xs text-gray-400">{formatDate(e.createdAt)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{e.description || "Transaction"}</p>
-                      <p className="text-xs text-gray-400">{formatDate(e.createdAt)}</p>
-                    </div>
+                    <p className={`text-sm font-bold ${e.entryType === "CREDIT" ? "text-green-600" : "text-gray-800"}`}>
+                      {e.entryType === "CREDIT" ? "+" : "-"}{formatCurrency(e.amount)}
+                    </p>
                   </div>
-                  <p className={`text-sm font-semibold ${e.entryType === "CREDIT" ? "text-green-600" : "text-gray-800"}`}>
-                    {e.entryType === "CREDIT" ? "+" : "-"}{formatCurrency(e.amount)}
-                  </p>
-                </div>
                 );
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

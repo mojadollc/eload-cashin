@@ -27,18 +27,9 @@ const NETWORK_LOGOS: Record<string, string> = {
 };
 
 interface Product {
-  promoId: number;
-  productCode: string;
-  network: string;
-  service: string;
-  name: string;
-  amount: number;
-  category: string;
-  description: string;
-  validity: string;
-  addressType: string;
-  addressMin: number;
-  addressMax: number;
+  promoId: number; productCode: string; network: string; service: string;
+  name: string; amount: number; category: string; description: string;
+  validity: string; addressType: string; addressMin: number; addressMax: number;
 }
 
 type Step = "browse" | "phone" | "confirm" | "processing" | "success" | "failed";
@@ -58,14 +49,12 @@ export default function EloadPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [fee, setFee] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
   const [txnNumber, setTxnNumber] = useState("");
   const [error, setError] = useState("");
 
   const loadSkus = async (force = false) => {
     setLoading(true);
-    const url = force ? "/api/eload/products?action=refresh" : "/api/eload/products";
-    const data = await api.get(url);
+    const data = await api.get(force ? "/api/eload/products?action=refresh" : "/api/eload/products");
     const flat: Product[] = data?.flat || [];
     setProducts(flat);
     const nets = [...new Set(flat.map((p) => p.network))] as string[];
@@ -80,27 +69,23 @@ export default function EloadPage() {
     Promise.all([
       api.get("/api/wallet"),
       api.get("/api/fees?service=ELOAD&amount=100"),
-    ]).then(([w, f]) => {
-      setWallet(w);
-      if (f?.fee !== undefined) setFee(f.fee);
-    });
+    ]).then(([w, f]) => { setWallet(w); if (f?.fee !== undefined) setFee(f.fee); });
     loadSkus();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mobileNets = networks.filter(n => MOBILE_NETWORKS.some(m => n.toUpperCase().includes(m)));
-  const gameNets = networks.filter(n => GAME_NETWORKS.some(g => n.toUpperCase().includes(g)));
-  const cableNets = networks.filter(n => CABLE_NETWORKS.some(c => n.toUpperCase().includes(c)));
-  const otherNets = networks.filter(n => !mobileNets.includes(n) && !gameNets.includes(n) && !cableNets.includes(n));
+  const gameNets   = networks.filter(n => GAME_NETWORKS.some(g => n.toUpperCase().includes(g)));
+  const cableNets  = networks.filter(n => CABLE_NETWORKS.some(c => n.toUpperCase().includes(c)));
+  const otherNets  = networks.filter(n => !mobileNets.includes(n) && !gameNets.includes(n) && !cableNets.includes(n));
 
-  // Zero-balance wall
   if (!loading && wallet !== null && Number(wallet?.availableBalance ?? 0) <= 0) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center px-6 space-y-5">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center px-6 space-y-5 pb-24">
       <div className="w-24 h-24 rounded-full bg-amber-100 flex items-center justify-center">
         <span className="text-4xl">💳</span>
       </div>
       <div>
         <h2 className="text-2xl font-bold text-gray-800">No Balance</h2>
-        <p className="text-gray-400 mt-2 max-w-xs">You need to fund your wallet before buying load.</p>
+        <p className="text-gray-400 mt-2 max-w-xs">Fund your wallet before buying load.</p>
       </div>
       <Link href="/wallet/fund" className="w-full max-w-xs py-4 rounded-2xl text-white font-bold text-lg bg-[#038E80] flex items-center justify-center gap-2">Fund Wallet</Link>
       <Link href="/dashboard" className="text-sm text-gray-400 underline">Back to Dashboard</Link>
@@ -108,19 +93,17 @@ export default function EloadPage() {
   );
 
   const availableTypes = [
-    { id: "mobile", label: "Mobile", color: "#007DFE", count: mobileNets.length },
-    { id: "games", label: "Games", color: "#8B5CF6", count: gameNets.length },
-    { id: "cable", label: "Cable/TV", color: "#0EA5E9", count: cableNets.length },
+    { id: "mobile", label: "Mobile",  color: "#007DFE", count: mobileNets.length },
+    { id: "games",  label: "Games",   color: "#8B5CF6", count: gameNets.length },
+    { id: "cable",  label: "Cable/TV",color: "#0EA5E9", count: cableNets.length },
     ...(otherNets.length > 0 ? [{ id: "others", label: "Others", color: "#6B7280", count: otherNets.length }] : []),
   ].filter(t => t.count > 0);
 
   const typeNetworks = selectedType === "mobile" ? mobileNets
     : selectedType === "games" ? gameNets
-    : selectedType === "cable" ? cableNets
-    : otherNets;
+    : selectedType === "cable" ? cableNets : otherNets;
 
   const netColor = NETWORK_COLORS[selectedNetwork] || "#6366F1";
-
   const categories = [...new Set(products.filter(p => p.network === selectedNetwork).map(p => p.category).filter(Boolean))];
   const filtered = products
     .filter(p => p.network === selectedNetwork)
@@ -132,15 +115,11 @@ export default function EloadPage() {
   const handleConfirm = async () => {
     if (!selectedProduct) return;
     setStep("processing");
-    setProcessing(true);
     const data = await api.post("/api/eload/purchase", {
-      mobileNumber: phone,
-      promoId: selectedProduct.promoId,
-      productCode: selectedProduct.productCode,
-      network: selectedProduct.network,
+      mobileNumber: phone, promoId: selectedProduct.promoId,
+      productCode: selectedProduct.productCode, network: selectedProduct.network,
       loadAmount: selectedProduct.amount,
     });
-    setProcessing(false);
     if (data?.error) { setError(data.error); setStep("failed"); return; }
     setTxnNumber(data?.transactionNumber || "");
     setStep("success");
@@ -152,41 +131,37 @@ export default function EloadPage() {
 
   // ── BROWSE ──────────────────────────────────────────────────────────────────
   if (step === "browse") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col pb-24">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-20">
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-xl text-[#038E80] bg-[#038E80]/10">
-          <ChevronLeft className="h-5 w-5" /> Back
-        </Link>
-        <div className="text-center">
-          <p className="font-bold text-gray-800 text-lg">Buy Load</p>
-          <p className="text-[10px] text-gray-400">{wallet ? formatCurrency(wallet.availableBalance) : "—"} available</p>
+      <div className="bg-[#038E80] px-4 pt-6 pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-white text-xl font-bold">Buy Load</h1>
+            <p className="text-white/60 text-xs mt-0.5">{wallet ? formatCurrency(wallet.availableBalance) : "—"} available</p>
+          </div>
+          <button onClick={() => loadSkus(true)} disabled={loading}
+            className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <RefreshCw className={`h-4 w-4 text-white ${loading ? "animate-spin" : ""}`} />
+          </button>
         </div>
-        <button onClick={() => loadSkus(true)} disabled={loading} className="p-1.5 rounded-full bg-gray-100 active:bg-gray-200">
-          <RefreshCw className={`h-4 w-4 text-gray-500 ${loading ? "animate-spin" : ""}`} />
-        </button>
       </div>
 
       {/* Type tabs */}
-      <div className="bg-white border-b border-gray-100 px-3 py-3">
+      <div className="bg-white border-b border-gray-100 px-4 py-3">
         <div className="flex gap-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {loading ? (
-            [1,2,3].map(i => (
-              <div key={i} className="shrink-0 flex flex-col items-center gap-1.5">
-                <div className="w-14 h-14 rounded-full bg-gray-200 animate-pulse" style={{ background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
-                <div className="h-2.5 w-10 rounded-full bg-gray-200 animate-pulse" />
-              </div>
-            ))
-          ) : availableTypes.map(type => {
+          {loading ? [1,2,3].map(i => (
+            <div key={i} className="shrink-0 flex flex-col items-center gap-1.5">
+              <div className="w-14 h-14 rounded-full bg-gray-200 animate-pulse" />
+              <div className="h-2.5 w-10 rounded-full bg-gray-200 animate-pulse" />
+            </div>
+          )) : availableTypes.map(type => {
             const active = selectedType === type.id;
+            const nets = type.id === "mobile" ? mobileNets : type.id === "games" ? gameNets : type.id === "cable" ? cableNets : otherNets;
             return (
-              <button key={type.id} onClick={() => {
-                const nets = type.id === "mobile" ? mobileNets : type.id === "games" ? gameNets : type.id === "cable" ? cableNets : otherNets;
-                setSelectedType(type.id);
-                setSelectedNetwork(nets[0] || "");
-                setFilter("all");
-              }} className="shrink-0 flex flex-col items-center gap-1.5">
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${active ? "shadow-lg scale-105" : "opacity-50"}`} style={{ backgroundColor: type.color }}>
+              <button key={type.id} onClick={() => { setSelectedType(type.id); setSelectedNetwork(nets[0] || ""); setFilter("all"); }}
+                className="shrink-0 flex flex-col items-center gap-1.5">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${active ? "shadow-lg scale-105" : "opacity-50"}`}
+                  style={{ backgroundColor: type.color }}>
                   <span className="text-white text-[10px] font-black">{type.label.slice(0, 3).toUpperCase()}</span>
                 </div>
                 <span className={`text-[11px] font-bold ${active ? "text-gray-900" : "text-gray-400"}`}>{type.label}</span>
@@ -197,7 +172,7 @@ export default function EloadPage() {
       </div>
 
       {/* Network chips */}
-      <div className="bg-white border-b border-gray-100 px-3 py-3">
+      <div className="bg-white border-b border-gray-100 px-4 py-3">
         {loading ? (
           <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
             {[1,2,3,4].map(i => (
@@ -226,80 +201,73 @@ export default function EloadPage() {
         )}
       </div>
 
-      {/* Products */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-white px-3 pt-2.5 pb-1.5">
-          {loading ? (
-            <div className="h-10 rounded-2xl bg-gray-200 animate-pulse" />
-          ) : (
-            <input type="text" placeholder={`Search ${selectedNetwork} promos...`} value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full h-10 px-4 rounded-2xl bg-gray-100 text-[13px] placeholder:text-gray-400 focus:outline-none" />
-          )}
+      {/* Search + category filter */}
+      <div className="bg-white px-4 pt-3 pb-2">
+        {loading ? (
+          <div className="h-10 rounded-2xl bg-gray-200 animate-pulse" />
+        ) : (
+          <input type="text" placeholder={`Search ${selectedNetwork} promos...`} value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full h-10 px-4 rounded-2xl bg-gray-100 text-[13px] placeholder:text-gray-400 focus:outline-none" />
+        )}
+      </div>
+      {!loading && categories.length > 0 && (
+        <div className="bg-white border-b border-gray-100 px-4 pb-3 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {["all", ...categories].map(c => (
+            <button key={c} onClick={() => setFilter(c)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all ${filter === c ? "text-white shadow-sm" : "bg-gray-100 text-gray-500"}`}
+              style={filter === c ? { backgroundColor: netColor } : {}}>
+              {c === "all" ? "All" : c}
+            </button>
+          ))}
         </div>
+      )}
 
-        {!loading && categories.length > 0 && (
-          <div className="bg-white border-b border-gray-100 px-3 py-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-            {["all", ...categories].map(c => (
-              <button key={c} onClick={() => setFilter(c)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 transition-all ${filter === c ? "text-white shadow-sm" : "bg-gray-100 text-gray-500"}`}
-                style={filter === c ? { backgroundColor: netColor } : {}}>
-                {c === "all" ? "All" : c}
+      {/* Product list */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm flex items-center gap-3">
+                <div className="shrink-0 w-16 h-16 rounded-2xl bg-gray-200 animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 bg-gray-200 rounded-full animate-pulse w-3/4" />
+                  <div className="h-2.5 bg-gray-200 rounded-full animate-pulse w-full" />
+                  <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-gray-400 text-sm py-10">No products available</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filtered.map(p => (
+              <button key={p.promoId} onClick={() => handleBuy(p)}
+                className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm active:scale-[0.98] transition-all text-left flex items-center gap-3">
+                <div className="shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: netColor + "18" }}>
+                  {NETWORK_LOGOS[p.network]
+                    ? <img src={NETWORK_LOGOS[p.network]} alt={p.network} className="w-10 h-10 object-contain" />
+                    : <span className="text-base font-black" style={{ color: netColor }}>₱{p.amount}</span>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-extrabold text-gray-900 leading-snug">{p.name}</p>
+                  {p.description && <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">{p.description}</p>}
+                  {p.validity && (
+                    <span className="inline-block mt-1.5 text-[11px] font-semibold text-white px-2 py-0.5 rounded-full" style={{ backgroundColor: netColor }}>
+                      {p.validity.replace("Valid for ", "")}
+                    </span>
+                  )}
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-base font-black" style={{ color: netColor }}>₱{p.amount}</p>
+                  <ChevronRight className="h-4 w-4 text-gray-300 ml-auto mt-1" />
+                </div>
               </button>
             ))}
           </div>
         )}
-
-        <div className="flex-1 overflow-y-auto p-3">
-          {loading ? (
-            <div className="flex flex-col gap-3">
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm flex items-center gap-3">
-                  <div className="shrink-0 w-16 h-16 rounded-2xl bg-gray-200 animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3.5 bg-gray-200 rounded-full animate-pulse w-3/4" />
-                    <div className="h-2.5 bg-gray-200 rounded-full animate-pulse w-full" />
-                    <div className="h-2.5 bg-gray-200 rounded-full animate-pulse w-1/2" />
-                    <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse" />
-                  </div>
-                  <div className="shrink-0 space-y-1.5 items-end flex flex-col">
-                    <div className="h-4 w-10 bg-gray-200 rounded-full animate-pulse" />
-                    <div className="h-3 w-4 bg-gray-200 rounded-full animate-pulse" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm py-10">No products available</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {filtered.map(p => (
-                <button key={p.promoId} onClick={() => handleBuy(p)}
-                  className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100 shadow-sm active:scale-[0.98] transition-all text-left flex items-center gap-3">
-                  <div className="shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: netColor + "18" }}>
-                    {NETWORK_LOGOS[p.network]
-                      ? <img src={NETWORK_LOGOS[p.network]} alt={p.network} className="w-10 h-10 object-contain" />
-                      : <span className="text-base font-black" style={{ color: netColor }}>₱{p.amount}</span>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-extrabold text-gray-900 leading-snug">{p.name}</p>
-                    {p.description && <p className="text-xs text-gray-500 mt-0.5 leading-snug">{p.description}</p>}
-                    {p.validity && (
-                      <span className="inline-block mt-1.5 text-[11px] font-semibold text-white px-2 py-0.5 rounded-full" style={{ backgroundColor: netColor }}>
-                        {p.validity.replace("Valid for ", "")}
-                      </span>
-                    )}
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-base font-black" style={{ color: netColor }}>₱{p.amount}</p>
-                    <ChevronRight className="h-4 w-4 text-gray-300 ml-auto mt-1" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+      </div>
     </div>
   );
 
@@ -308,21 +276,23 @@ export default function EloadPage() {
     const minLen = selectedProduct?.addressMin || 10;
     const maxLen = selectedProduct?.addressMax || 11;
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-          <button onClick={() => setStep("browse")} className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-xl" style={{ color: networkColor, backgroundColor: networkColor + "18" }}>
-            <ChevronLeft className="h-5 w-5" /> Back
+      <div className="min-h-screen bg-[#F7F9FA] flex flex-col pb-24">
+        <div className="bg-[#038E80] px-4 pt-6 pb-4 flex items-center gap-3">
+          <button onClick={() => setStep("browse")} className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <ChevronLeft className="h-5 w-5 text-white" />
           </button>
-          <p className="font-bold text-gray-800">Enter Mobile No.</p>
-          <div className="w-14" />
+          <div>
+            <h1 className="text-white text-lg font-bold">Enter Mobile No.</h1>
+            <p className="text-white/60 text-xs">{selectedProduct?.network} · ₱{selectedProduct?.amount}</p>
+          </div>
         </div>
 
-        <div className="flex-1 px-4 pt-4 pb-6 space-y-4">
+        <div className="flex-1 px-4 pt-5 space-y-4">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-400">{selectedProduct?.network}</p>
               <p className="font-bold text-gray-800 text-sm">{selectedProduct?.name}</p>
-              {selectedProduct?.validity && <p className="text-[10px] text-gray-400">{selectedProduct.validity}</p>}
+              {selectedProduct?.validity && <p className="text-[10px] text-gray-400 mt-0.5">{selectedProduct.validity}</p>}
             </div>
             <p className="text-xl font-black" style={{ color: networkColor }}>₱{selectedProduct?.amount}</p>
           </div>
@@ -331,20 +301,15 @@ export default function EloadPage() {
             <input type="tel" inputMode="numeric" maxLength={maxLen} value={phone}
               onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, maxLen))}
               placeholder="09XX XXX XXXX"
-              className="w-full text-3xl font-extrabold text-gray-800 tracking-widest text-center px-4 py-5 bg-transparent focus:outline-none placeholder:text-gray-300" />
+              className="w-full text-3xl font-extrabold text-gray-800 tracking-widest text-center px-4 py-6 bg-transparent focus:outline-none placeholder:text-gray-300" />
             {phone.length > 0 && <p className="text-xs text-gray-400 text-center pb-3">{phone.length} / {maxLen} digits</p>}
           </div>
 
-          <div className="flex gap-3">
-            <button onClick={() => setStep("browse")} className="flex-1 py-3.5 rounded-2xl font-bold text-sm" style={{ color: networkColor, backgroundColor: networkColor + "18" }}>
-              Back
-            </button>
-            <button onClick={() => setStep("confirm")} disabled={phone.length < minLen}
-              className="flex-[2] py-3.5 rounded-2xl text-white font-bold text-base disabled:opacity-40 shadow-lg"
-              style={{ backgroundColor: phone.length >= minLen ? networkColor : undefined }}>
-              Next →
-            </button>
-          </div>
+          <button onClick={() => setStep("confirm")} disabled={phone.length < minLen}
+            className="w-full py-4 rounded-2xl text-white font-bold text-base disabled:opacity-40 shadow-lg transition-all"
+            style={{ backgroundColor: phone.length >= minLen ? networkColor : "#9CA3AF" }}>
+            Continue →
+          </button>
         </div>
       </div>
     );
@@ -352,16 +317,18 @@ export default function EloadPage() {
 
   // ── CONFIRM ──────────────────────────────────────────────────────────────────
   if (step === "confirm") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-        <button onClick={() => setStep("phone")} className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-xl" style={{ color: networkColor, backgroundColor: networkColor + "18" }}>
-          <ChevronLeft className="h-5 w-5" /> Back
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col pb-24">
+      <div className="bg-[#038E80] px-4 pt-6 pb-4 flex items-center gap-3">
+        <button onClick={() => setStep("phone")} className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+          <ChevronLeft className="h-5 w-5 text-white" />
         </button>
-        <p className="font-bold text-gray-800">Review & Confirm</p>
-        <div className="w-14" />
+        <div>
+          <h1 className="text-white text-lg font-bold">Review & Confirm</h1>
+          <p className="text-white/60 text-xs">Double-check before sending</p>
+        </div>
       </div>
 
-      <div className="flex-1 px-4 pb-6 pt-4 space-y-4">
+      <div className="flex-1 px-4 pt-5 space-y-4">
         <div className="rounded-2xl overflow-hidden shadow-sm">
           <div className="py-6 text-center text-white" style={{ backgroundColor: networkColor }}>
             <p className="text-sm opacity-80 mb-1">{selectedProduct?.network} · {selectedProduct?.name}</p>
@@ -372,13 +339,13 @@ export default function EloadPage() {
             <div className="flex justify-between"><span className="text-sm text-gray-400">Mobile Number</span><span className="font-black text-gray-800 tracking-widest">{phone}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Network</span><span className="font-bold text-gray-800">{selectedProduct?.network}</span></div>
             <div className="flex justify-between"><span className="text-sm text-gray-400">Load Amount</span><span className="font-bold">{formatCurrency(selectedProduct?.amount || 0)}</span></div>
-            <div className="flex justify-between"><span className="text-sm text-gray-400">CashIn-Tap Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
+            <div className="flex justify-between"><span className="text-sm text-gray-400">Service Fee</span><span className="font-bold">{formatCurrency(fee)}</span></div>
             <div className="flex justify-between border-t pt-3"><span className="font-bold">Total</span><span className="font-black text-base" style={{ color: networkColor }}>{formatCurrency((selectedProduct?.amount || 0) + fee)}</span></div>
             <div className="flex justify-between text-xs text-gray-400 pt-1"><span>Wallet Balance</span><span>{formatCurrency(wallet?.availableBalance || 0)}</span></div>
           </div>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700 text-center">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-sm text-amber-700 text-center">
           ⚠️ Double-check the mobile number. Load cannot be reversed.
         </div>
 
@@ -395,7 +362,7 @@ export default function EloadPage() {
 
   // ── PROCESSING ───────────────────────────────────────────────────────────────
   if (step === "processing") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 pb-24">
       <div className="relative">
         <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ backgroundColor: networkColor }} />
         <div className="relative w-24 h-24 rounded-full flex items-center justify-center" style={{ backgroundColor: networkColor }}>
@@ -413,7 +380,7 @@ export default function EloadPage() {
 
   // ── SUCCESS ──────────────────────────────────────────────────────────────────
   if (step === "success") return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 pb-24">
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-green-100 animate-pulse" />
         <div className="relative w-28 h-28 rounded-full bg-green-500 flex items-center justify-center shadow-xl shadow-green-500/30">
@@ -437,12 +404,13 @@ export default function EloadPage() {
       <button onClick={reset} className="w-full max-w-xs py-4 rounded-2xl text-white font-bold text-lg shadow-lg flex items-center justify-center gap-2" style={{ backgroundColor: networkColor }}>
         <RotateCcw className="h-5 w-5" /> New Transaction
       </button>
+      <Link href="/dashboard" className="text-sm text-gray-400 underline">Back to Dashboard</Link>
     </div>
   );
 
   // ── FAILED ───────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-center space-y-5 px-6">
+    <div className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center text-center space-y-5 px-6 pb-24">
       <div className="w-28 h-28 rounded-full bg-red-500 flex items-center justify-center shadow-xl shadow-red-500/30">
         <svg className="w-14 h-14 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
