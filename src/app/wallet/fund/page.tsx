@@ -1,7 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useApi } from "@/components/shared/use-api";
-import { useAuth } from "@/components/shared/auth-context";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,48 +9,26 @@ import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
-const PENDING_KEY = "pending_fund_txn";
 
 export default function FundWalletPage() {
   const api = useApi();
   const router = useRouter();
-  const { accessToken } = useAuth();
   const [amount, setAmount] = useState<number>(1000);
   const [loading, setLoading] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
   const [fee, setFee] = useState(0);
-  const pendingTxn = useRef<string | null>(null);
 
   useEffect(() => {
-    api.get(`/api/fees?service=WALLET_FUND&amount=${amount}`).then(d => {
+    api.get(`/api/fees?service=WALLET_FUND&amount=${amount}`).then((d: any) => {
       if (d?.fee !== undefined) setFee(d.fee);
     });
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    // Only cancel if user navigated back to the fund page (bfcache restore)
-    // Do NOT cancel on initial mount — PayMongo redirects back through the return page first
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        const txn = sessionStorage.getItem(PENDING_KEY);
-        if (txn) {
-          sessionStorage.removeItem(PENDING_KEY);
-          api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
-        }
-      }
-    };
-    window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFund = async () => {
     setLoading(true); setError("");
     try {
       const data = await api.post("/api/wallet/fund", { amount });
       if (data?.checkoutUrl) {
-        pendingTxn.current = data.transactionNumber;
-        sessionStorage.setItem(PENDING_KEY, data.transactionNumber);
         window.location.href = data.checkoutUrl;
       } else {
         setError(data?.error || "Failed to create payment. Please try again.");
@@ -63,21 +40,11 @@ export default function FundWalletPage() {
     }
   };
 
-  const handleGoHome = async () => {
-    setCancelling(true);
-    const txn = sessionStorage.getItem(PENDING_KEY);
-    if (txn) {
-      sessionStorage.removeItem(PENDING_KEY);
-      await api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
-    }
-    router.replace("/dashboard");
-  };
-
   return (
     <div className="p-4 lg:p-8 max-w-md mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={handleGoHome} disabled={cancelling}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50">
+        <button onClick={() => router.replace("/dashboard")}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors">
           <ArrowLeft size={16} /> Home
         </button>
         <h1 className="text-2xl font-bold">Fund Wallet</h1>

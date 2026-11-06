@@ -14,26 +14,15 @@ function ReturnContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("checking");
   const [amount, setAmount] = useState(0);
-  const [cancelling, setCancelling] = useState(false);
 
   const ref = searchParams.get("ref");
   const failed = searchParams.get("failed");
 
-  const cancelAndGoHome = async () => {
-    setCancelling(true);
-    if (ref) await api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).catch(() => {});
-    router.replace("/dashboard");
-  };
-
   useEffect(() => {
     if (!ref) { router.replace("/wallet"); return; }
 
-    // Clear sessionStorage immediately so fund page doesn't cancel this transaction
-    sessionStorage.removeItem("pending_fund_txn");
-
-    // Cancel redirect from PayMongo — show failed immediately, no polling needed
+    // If PayMongo sent failed=1 (cancel_url), show expired immediately
     if (failed === "1") {
-      api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).catch(() => {});
       setStatus("expired");
       return;
     }
@@ -60,7 +49,7 @@ function ReturnContent() {
 
       attempts++;
       if (attempts >= MAX_ATTEMPTS) {
-        setStatus("pending"); // timed out, show pending UI
+        setStatus("pending");
         return;
       }
       setTimeout(check, 3000);
@@ -84,11 +73,10 @@ function ReturnContent() {
         <p className="text-xs text-gray-300 mt-3">This may take a few seconds. Do not close this screen.</p>
       </div>
       <button
-        onClick={cancelAndGoHome}
-        disabled={cancelling}
-        className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+        onClick={() => router.replace("/dashboard")}
+        className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
       >
-        <Home size={15} /> {cancelling ? "Cancelling..." : "Cancel & Go Home"}
+        <Home size={15} /> Go Home
       </button>
     </div>
   );
