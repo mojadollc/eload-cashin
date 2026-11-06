@@ -141,17 +141,17 @@ export default function LandingPage() {
           <p className="text-center text-xs text-gray-400 font-semibold uppercase tracking-widest mb-8">Powered by Trusted Providers</p>
           <div className="flex flex-wrap justify-center items-center gap-6 lg:gap-10">
             {[
-              { name: "PayMongo",  img: "/providers/paymongo.png", bg: "#0A6EBD" },
-              { name: "GBits",     img: "/providers/gbits.png",    bg: "#00843D" },
-              { name: "Globe",     img: "/providers/globe.png",    bg: "#007DFE" },
-              { name: "Smart",     img: "/providers/smart.png",    bg: "#00B900" },
-              { name: "DITO",      img: "/providers/dito.png",     bg: "#06B6D4" },
-              { name: "GCash",     img: "/providers/gcash.png",    bg: "#007DFF" },
-              { name: "Maya",      img: "/providers/maya.png",     bg: "#00C27A" },
-            ].map(({ name, img, bg }) => (
-              <div key={name} className="flex flex-col items-center gap-2 group">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white flex items-center justify-center group-hover:shadow-md transition-shadow">
-                  <img src={img} alt={name} className="w-full h-full object-cover" />
+              { name: "PayMongo", img: "/providers/paymongo.png" },
+              { name: "GBits",    img: "/providers/gbits.png" },
+              { name: "Globe",    img: "/providers/globe.png" },
+              { name: "Smart",    img: "/providers/smart.png" },
+              { name: "DITO",     img: "/providers/dito.png" },
+              { name: "GCash",    img: "/providers/gcash.png" },
+              { name: "Maya",     img: "/providers/maya.png" },
+            ].map(({ name, img }) => (
+              <div key={name} className="flex flex-col items-center gap-2">
+                <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center p-2 hover:shadow-md transition-shadow">
+                  <img src={img} alt={name} className="w-full h-full object-contain" />
                 </div>
                 <span className="text-xs font-semibold text-gray-400">{name}</span>
               </div>
