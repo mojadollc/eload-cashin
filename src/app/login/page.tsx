@@ -38,7 +38,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#038E80]">CashIn Tap</h1>
+          <Link href="/"><h1 className="text-3xl font-bold text-[#038E80] hover:opacity-80 transition-opacity">CashIn Tap</h1></Link>
           <p className="text-gray-500 mt-1">Sign in to your account</p>
         </div>
         {verified && (
