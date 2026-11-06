@@ -28,6 +28,9 @@ function ReturnContent() {
   useEffect(() => {
     if (!ref) { router.replace("/wallet"); return; }
 
+    // Clear sessionStorage immediately so fund page doesn't cancel this transaction
+    sessionStorage.removeItem("pending_fund_txn");
+
     // Cancel redirect from PayMongo — show failed immediately, no polling needed
     if (failed === "1") {
       api.post("/api/wallet/fund/cancel", { transactionNumber: ref }).catch(() => {});

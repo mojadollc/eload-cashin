@@ -30,15 +30,17 @@ export default function FundWalletPage() {
   }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const cancelPending = () => {
-      const txn = sessionStorage.getItem(PENDING_KEY);
-      if (txn) {
-        sessionStorage.removeItem(PENDING_KEY);
-        api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
+    // Only cancel if user navigated back to the fund page (bfcache restore)
+    // Do NOT cancel on initial mount — PayMongo redirects back through the return page first
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        const txn = sessionStorage.getItem(PENDING_KEY);
+        if (txn) {
+          sessionStorage.removeItem(PENDING_KEY);
+          api.post("/api/wallet/fund/cancel", { transactionNumber: txn }).catch(() => {});
+        }
       }
     };
-    const handlePageShow = (e: PageTransitionEvent) => { if (e.persisted) cancelPending(); };
-    cancelPending();
     window.addEventListener("pageshow", handlePageShow);
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

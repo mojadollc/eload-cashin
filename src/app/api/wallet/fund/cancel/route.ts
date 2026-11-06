@@ -17,18 +17,9 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   const linkId = txn.fundingTxn?.paymongoLinkId;
 
-  // Archive the PayMongo link so it can't be paid later
-  if (linkId) {
-    try {
-      const key = Buffer.from(`${process.env.PAYMONGO_SECRET_KEY}:`).toString("base64");
-      await fetch(`https://api.paymongo.com/v1/links/${linkId}/archive`, {
-        method: "POST",
-        headers: { Authorization: `Basic ${key}`, "Content-Type": "application/json" },
-      });
-    } catch {
-      // Best-effort — still cancel in DB
-    }
-  }
+  // Checkout sessions expire on their own — no archive API needed
+  // (old payment links used /links/:id/archive, but checkout sessions don't support it)
+  void linkId;
 
   await prisma.transaction.update({
     where: { id: txn.id },
