@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/shared/auth-context";
 import SwRegister from "@/components/shared/sw-register";
+import { LocationTracker } from "@/components/shared/location-tracker";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className={`${geist.className} bg-[#F7F9FA] text-[#17202A]`}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <LocationTracker />
+          {children}
+        </AuthProvider>
         <SwRegister />
       </body>
     </html>

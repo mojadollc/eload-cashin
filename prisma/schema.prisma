@@ -363,6 +363,8 @@ model Session {
   token     String   @unique
   ipAddress String?
   location  String?  // City, Region, Country from IP
+  latitude  Decimal? // Precise GPS latitude from browser
+  longitude Decimal? // Precise GPS longitude from browser
   expiresAt DateTime
   createdAt DateTime @default(now())
 

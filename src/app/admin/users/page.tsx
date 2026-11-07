@@ -144,7 +144,7 @@ function UserDrawer({ userId, onClose, onUpdated }: { userId: string; onClose: (
                               <div className="w-2 h-2 rounded-full bg-green-500" />
                               <div>
                                 <p className="text-xs font-medium text-gray-700">{s.ipAddress || "Unknown IP"}</p>
-                                <p className="text-[10px] text-gray-400">{s.location || "Location unavailable"}</p>
+                                <p className="text-[10px] text-gray-400">{s.location || "IP location unavailable"}{s.latitude && s.longitude ? ` · GPS: ${s.latitude}, ${s.longitude}` : ""}</p>
                               </div>
                             </div>
                             <p className="text-[10px] text-gray-400">{formatDate(s.createdAt)}</p>
