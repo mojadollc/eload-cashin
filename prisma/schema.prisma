@@ -437,13 +437,14 @@ model KycDocument {
 }
 
 model UserPin {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  pinHash   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  pinHash           String
+  biometricsEnabled Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id])
+  user              User     @relation(fields: [userId], references: [id])
 }
 
 enum TicketStatus {
