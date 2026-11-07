@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/landing"];
-const PUBLIC_API = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh"];
+const PUBLIC_API = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh", "/api/mobile/auth/"];
 
 function getTokenFromRequest(req: NextRequest): string | null {
   const auth = req.headers.get("authorization");
