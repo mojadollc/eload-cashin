@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { signAccessToken, signRefreshToken } from "@/lib/auth/jwt";
 import { rateLimit } from "@/lib/mobile/rate-limit";
+import { redis } from "@/lib/redis/client";
 
 const otpLoginSchema = z.object({
   mobile: z.string(),
@@ -47,8 +48,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password login is for admin accounts only" }, { status: 403 });
     }
     if (!user.passwordHash) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+
+    // Lockout after 5 failed attempts for 15 minutes
+    const lockKey = `admin-login-fail:${mobile}`;
+    const fails = parseInt(await redis.get(lockKey) ?? "0");
+    if (fails >= 5) return NextResponse.json({ error: "Too many failed attempts. Try again in 15 minutes." }, { status: 429 });
+
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    if (!valid) {
+      await redis.set(lockKey, fails + 1, "EX", 900);
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    }
+    await redis.del(lockKey);
     if (user.status === "SUSPENDED") return NextResponse.json({ error: "Account suspended" }, { status: 403 });
 
     const accessToken = signAccessToken({ userId: user.id, role: user.role });

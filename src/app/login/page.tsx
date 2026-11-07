@@ -65,8 +65,6 @@ function LoginForm() {
 
   const [step, setStep] = useState<Step>("mobile");
   const [mobile, setMobile] = useState("");
-  const [password, setPassword] = useState("");
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [otp, setOtp] = useState("");
   const [mpin, setMpin] = useState("");
   const [error, setError] = useState("");
@@ -84,26 +82,6 @@ function LoginForm() {
   useEffect(() => {
     return () => { recaptchaRef.current?.clear(); };
   }, []);
-
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true); setError("");
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mobile, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error); setLoading(false); return; }
-    if (data.requiresMpin) {
-      setPendingAuth({ accessToken: data.accessToken, user: data.user });
-      setStep("mpin");
-    } else {
-      login(data.accessToken, data.user);
-      router.push("/admin");
-    }
-    setLoading(false);
-  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,7 +201,7 @@ function LoginForm() {
         <Card>
           <CardContent className="pt-6">
             {step === "mobile" && (
-              <form onSubmit={isAdminLogin ? handleAdminLogin : handleSendOtp} className="space-y-4">
+              <form onSubmit={handleSendOtp} className="space-y-4">
                 <Input
                   label="Mobile Number"
                   placeholder="09XXXXXXXXX"
@@ -231,28 +209,13 @@ function LoginForm() {
                   onChange={e => setMobile(e.target.value)}
                   required
                 />
-                {isAdminLogin && (
-                  <Input
-                    label="Password"
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                  />
-                )}
                 {error && <p className="text-sm text-red-500">{error}</p>}
                 <Button type="submit" className="w-full" size="lg" loading={loading}>
-                  {isAdminLogin ? "Sign In" : "Send OTP"}
+                  Send OTP
                 </Button>
-                <div className="flex justify-between text-sm">
-                  <p className="text-gray-500">
-                    No account? <Link href="/register" className="text-[#038E80] font-medium">Register</Link>
-                  </p>
-                  <button type="button" onClick={() => { setIsAdminLogin(!isAdminLogin); setError(""); }} className="text-gray-400 hover:text-gray-600">
-                    {isAdminLogin ? "User login" : "Admin login"}
-                  </button>
-                </div>
+                <p className="text-center text-sm text-gray-500">
+                  No account? <Link href="/register" className="text-[#038E80] font-medium">Register</Link>
+                </p>
               </form>
             )}
 
