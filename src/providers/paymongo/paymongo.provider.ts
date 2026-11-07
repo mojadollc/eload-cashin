@@ -109,18 +109,19 @@ export async function getPayMongoDisbursement(disbursementId: string) {
 // ── Webhook Verification ──────────────────────────────────────────────────────
 
 export function verifyPayMongoWebhook(rawBody: string, sigHeader: string, secret: string): boolean {
+  // Format: t=<timestamp>,v1=<signature>
   const tPart = sigHeader.split(",").find((p) => p.startsWith("t="));
   const v1Part = sigHeader.split(",").find((p) => p.startsWith("v1="));
   if (!tPart || !v1Part) return false;
 
-  const timestamp = tPart.slice(2);
-  const signature = v1Part.slice(3);
+  const signature = v1Part.slice(3); // Remove "v1=" prefix to get just the hex signature
   const expected = crypto
     .createHmac("sha256", secret)
-    .update(`${timestamp}.${rawBody}`)
+    .update(rawBody)
     .digest("hex");
 
   try {
+    // Both are hex strings, compare as buffers
     return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
   } catch {
     return false;
