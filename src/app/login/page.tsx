@@ -11,8 +11,15 @@ import { Eye, EyeOff } from "lucide-react";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [form, setForm] = useState({ mobile: "", password: "" });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push(["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(user.role) ? "/admin" : "/dashboard");
+    }
+  }, [user, router]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);

@@ -1,6 +1,8 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes of inactivity
+
 interface User {
   id: string;
   firstName: string;
@@ -100,6 +102,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (accessToken) scheduleRefresh(accessToken);
     return () => { if (refreshTimer.current) clearTimeout(refreshTimer.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Inactivity logout
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetInactivityTimer = () => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    if (user) {
+      inactivityTimer.current = setTimeout(() => {
+        logout();
+      }, INACTIVITY_TIMEOUT);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    resetInactivityTimer();
+    const events = ["mousedown", "keydown", "scroll", "touchstart"];
+    events.forEach(event => window.addEventListener(event, resetInactivityTimer));
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetInactivityTimer));
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, [user]);
 
   const isAdmin = ["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(user?.role || "");
 
