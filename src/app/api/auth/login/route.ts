@@ -5,10 +5,14 @@ import { z } from "zod";
 import { signAccessToken, signRefreshToken } from "@/lib/auth/jwt";
 import { rateLimit } from "@/lib/mobile/rate-limit";
 
-// Step 2: mobile + firebaseToken → issue JWT
 const otpLoginSchema = z.object({
   mobile: z.string(),
   firebaseToken: z.string(),
+});
+
+const passwordLoginSchema = z.object({
+  mobile: z.string(),
+  password: z.string().min(1),
 });
 
 async function getLocationFromIP(ip: string): Promise<string | null> {
@@ -31,13 +35,43 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
+  // Password-based login for admin/staff
+  const pwParsed = passwordLoginSchema.safeParse(body);
+  if (pwParsed.success && pwParsed.data.password) {
+    const { mobile, password } = pwParsed.data;
+    const user = await prisma.user.findUnique({ where: { mobile }, include: { pin: true } });
+    if (!user) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+
+    const ADMIN_ROLES = ["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"];
+    if (!ADMIN_ROLES.includes(user.role)) {
+      return NextResponse.json({ error: "Password login is for admin accounts only" }, { status: 403 });
+    }
+    if (!user.passwordHash) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    if (user.status === "SUSPENDED") return NextResponse.json({ error: "Account suspended" }, { status: 403 });
+
+    const accessToken = signAccessToken({ userId: user.id, role: user.role });
+    const refreshToken = signRefreshToken({ userId: user.id, role: user.role });
+    const location = await getLocationFromIP(ip);
+    await prisma.session.create({
+      data: { userId: user.id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), ipAddress: ip, location },
+    });
+    const res = NextResponse.json({
+      accessToken, refreshToken, requiresMpin: !!user.pin,
+      user: { id: user.userId, firstName: user.firstName, lastName: user.lastName, role: user.role, mobile: user.mobile, email: user.email, hasPin: !!user.pin, biometricsEnabled: user.pin?.biometricsEnabled ?? false },
+    });
+    res.cookies.set("access_token", accessToken, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 900 });
+    res.cookies.set("refresh_token", refreshToken, { httpOnly: true, secure: true, sameSite: "strict", maxAge: 604800 });
+    return res;
+  }
+
   // OTP-based login (mobile + firebaseToken)
   const parsed = otpLoginSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
   const { mobile, firebaseToken } = parsed.data;
 
-  // Verify Firebase token
   try {
     const { getAdminAuth } = await import("@/lib/firebase/admin");
     const decoded = await getAdminAuth().verifyIdToken(firebaseToken);

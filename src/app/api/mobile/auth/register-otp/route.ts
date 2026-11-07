@@ -51,4 +51,3 @@ async function sendSms(mobile: string, message: string): Promise<void> {
   });
   if (!res.ok) throw new Error("Failed to send SMS");
 }
-}
