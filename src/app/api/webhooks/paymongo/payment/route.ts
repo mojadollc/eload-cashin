@@ -8,8 +8,8 @@ export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const sigHeader = req.headers.get("paymongo-signature") || "";
 
-  // Always return 200 — returning 4xx causes PayMongo to disable the webhook
   if (!verifyPayMongoWebhook(rawBody, sigHeader, process.env.PAYMONGO_PAYMENT_WEBHOOK_SECRET!)) {
+    console.log("[webhook] signature mismatch — ignoring");
     return NextResponse.json({ ok: true });
   }
 
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const eventType: string = payload?.data?.attributes?.type || "";
+  console.log("[webhook] eventType:", eventType);
 
   if (!["payment.paid", "link.payment.paid", "checkout_session.payment.paid"].includes(eventType)) {
     return NextResponse.json({ ok: true });
@@ -28,32 +29,48 @@ export async function POST(req: NextRequest) {
 
   try {
     const isCheckoutEvent = eventType === "checkout_session.payment.paid";
-    const paymentData = isCheckoutEvent
-      ? payload?.data?.attributes?.data?.attributes?.payments?.[0]
-      : payload?.data?.attributes?.data;
-    if (!paymentData) return NextResponse.json({ ok: true });
 
-    const paymongoPaymentId: string = paymentData.id || "";
+    // For checkout_session events the structure is:
+    // payload.data.attributes.data = checkout session object
+    // payload.data.attributes.data.attributes.reference_number = our txnNumber
+    // payload.data.attributes.data.attributes.payments[0] = payment object (may be absent)
+    const checkoutSession = isCheckoutEvent ? payload?.data?.attributes?.data : null;
+    const paymentData = isCheckoutEvent
+      ? checkoutSession?.attributes?.payments?.[0]
+      : payload?.data?.attributes?.data;
+
+    // Use checkout session ID as idempotency key if no payment object yet
+    const paymongoPaymentId: string = paymentData?.id || checkoutSession?.id || "";
     const paymongoLinkId: string = isCheckoutEvent
-      ? (payload?.data?.attributes?.data?.id || "")
-      : (paymentData.attributes?.source?.id || "");
+      ? (checkoutSession?.id || "")
+      : (paymentData?.attributes?.source?.id || "");
+
     const remarks: string = isCheckoutEvent
-      ? (payload?.data?.attributes?.data?.attributes?.reference_number || "")
-      : (paymentData.attributes?.remarks || paymentData.attributes?.description || "");
+      ? (checkoutSession?.attributes?.reference_number || "")
+      : (paymentData?.attributes?.remarks || paymentData?.attributes?.description || "");
+
     const txnMatch = remarks.match(/WF-[\w-]+/);
     const txnNumber: string = txnMatch ? txnMatch[0] : remarks.trim();
 
-    // Idempotency: skip if already processed
+    console.log("[webhook] paymongoPaymentId:", paymongoPaymentId, "| paymongoLinkId:", paymongoLinkId, "| txnNumber:", txnNumber);
+
+    if (!paymongoPaymentId) {
+      console.log("[webhook] no payment ID found, skipping");
+      return NextResponse.json({ ok: true });
+    }
+
     const alreadyProcessed = await prisma.providerWebhook.findFirst({
       where: { reference: paymongoPaymentId, processed: true },
     });
-    if (alreadyProcessed) return NextResponse.json({ ok: true });
+    if (alreadyProcessed) {
+      console.log("[webhook] already processed, skipping");
+      return NextResponse.json({ ok: true });
+    }
 
     const webhook = await prisma.providerWebhook.create({
       data: { provider: "PAYMONGO", eventType, payload, reference: paymongoPaymentId },
     });
 
-    // Look up transaction: txnNumber first, then paymongoLinkId
     let transaction: any = null;
 
     if (txnNumber) {
@@ -72,6 +89,8 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+
+    console.log("[webhook] transaction found:", transaction?.transactionNumber, "| status:", transaction?.status);
 
     if (!transaction) {
       await prisma.providerWebhook.update({
@@ -101,7 +120,10 @@ export async function POST(req: NextRequest) {
       data: { processed: true, processedAt: new Date() },
     });
 
-    if (updated.count === 0) return NextResponse.json({ ok: true });
+    if (updated.count === 0) {
+      console.log("[webhook] updateMany count=0, already credited");
+      return NextResponse.json({ ok: true });
+    }
 
     await prisma.fundingTransaction.update({
       where: { transactionId: transaction.id },
@@ -116,6 +138,8 @@ export async function POST(req: NextRequest) {
       transaction.transactionNumber
     );
 
+    console.log("[webhook] credited wallet", wallet.id, "amount:", transaction.grossAmount);
+
     await prisma.notification.create({
       data: {
         userId: transaction.userId,
@@ -129,8 +153,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err: any) {
-    // Log but still return 200 — never return 5xx to PayMongo
-    console.error("[webhook/paymongo/payment]", err?.message || err);
+    console.error("[webhook/paymongo/payment] ERROR:", err?.message || err);
   }
 
   return NextResponse.json({ ok: true });
