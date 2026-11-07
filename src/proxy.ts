@@ -20,7 +20,7 @@ function verifyToken(token: string): { valid: boolean; role?: string } {
   }
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const token = getTokenFromRequest(req);
   const isAuthenticated = token ? verifyToken(token).valid : false;
