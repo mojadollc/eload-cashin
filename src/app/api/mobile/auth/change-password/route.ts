@@ -26,6 +26,7 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   const user = await prisma.user.findUnique({ where: { id: payload.userId }, select: { passwordHash: true } });
   if (!user) return fail("User not found", 404);
+  if (!user.passwordHash) return fail("Password login is not enabled for this account", 400);
 
   const valid = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
   if (!valid) return fail("Current password is incorrect", 401);
