@@ -104,3 +104,21 @@ export async function GET(req: NextRequest) {
     biometricsEnabled: userPin?.biometricsEnabled ?? false,
   });
 }
+
+// PUT /api/auth/pin - Verify MPIN (unlock after OTP login)
+export async function PUT(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json();
+  const parsed = z.object({ pin: z.string().length(4).regex(/^\d{4}$/) }).safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid PIN" }, { status: 400 });
+
+  const userPin = await prisma.userPin.findUnique({ where: { userId: user.id } });
+  if (!userPin) return NextResponse.json({ error: "No MPIN set" }, { status: 400 });
+
+  const valid = await bcrypt.compare(parsed.data.pin, userPin.pinHash);
+  if (!valid) return NextResponse.json({ error: "Incorrect MPIN" }, { status: 401 });
+
+  return NextResponse.json({ success: true });
+}
