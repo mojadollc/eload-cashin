@@ -121,7 +121,7 @@ export function verifyPayMongoWebhook(rawBody: string, sigHeader: string, secret
     .digest("hex");
 
   try {
-    return crypto.timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(signature, "hex"));
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
   } catch {
     return false;
   }
