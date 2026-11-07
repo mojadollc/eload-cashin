@@ -28,9 +28,27 @@ export async function POST(req: NextRequest) {
     data: { userId: user.id, code, type: "MOBILE_VERIFY", expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[DEV] Register OTP for ${parsed.data.mobile}: ${code}`);
-  }
+  await sendSms(parsed.data.mobile, `Your CashIn Tap OTP is: ${code}. Valid for 10 minutes. Do not share this code.`);
 
   return NextResponse.json({ message: "OTP sent.", expiresIn: 600 });
+}
+
+async function sendSms(mobile: string, message: string): Promise<void> {
+  const apiKey = process.env.SEMAPHORE_API_KEY;
+  if (!apiKey) {
+    console.log(`[DEV] OTP for ${mobile}: ${message}`);
+    return;
+  }
+  const res = await fetch("https://api.semaphore.co/api/v4/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      apikey: apiKey,
+      number: mobile,
+      message,
+      sendername: process.env.SEMAPHORE_SENDER_NAME ?? "CASHIN",
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to send SMS");
+}
 }

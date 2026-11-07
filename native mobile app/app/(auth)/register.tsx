@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { authApi } from "@/api/endpoints";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/Button";
@@ -58,13 +59,14 @@ function OtpBoxes({ value, onChange }: { value: string; onChange: (v: string) =>
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const setAuth = useAuthStore((s: any) => s.setAuth);
 
   const [step, setStep] = useState<"register" | "otp">("register");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [formData, setFormData] = useState<FormData | null>(null);
+  const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
 
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -81,7 +83,9 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await authApi.register(data);
-      await authApi.sendRegisterOtp(data.mobile);
+      const phoneNumber = "+63" + data.mobile.slice(1);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirm(confirmation);
       setFormData(data);
       setStep("otp");
       setCountdown(60);
@@ -94,16 +98,19 @@ export default function RegisterScreen() {
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length < 6 || !formData) return;
+    if (otp.length < 6 || !confirm || !formData) return;
     setLoading(true);
     try {
-      const res = await authApi.verifyRegisterOtp(formData.mobile, otp);
+      const credential = await confirm.confirm(otp);
+      const firebaseToken = await credential!.user.getIdToken();
+      const res = await authApi.verifyRegisterOtp(formData.mobile, firebaseToken);
       const { accessToken, refreshToken, user } = res.data;
+      await auth().signOut();
       await setAuth(user, accessToken, refreshToken);
       Toast.show({ type: "success", text1: "Mobile verified! Set your MPIN." });
       router.replace("/(auth)/set-mpin");
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Invalid or expired OTP" });
+      Toast.show({ type: "error", text1: err?.response?.data?.error || err?.message || "Invalid OTP" });
       setOtp("");
     } finally {
       setLoading(false);
@@ -114,12 +121,14 @@ export default function RegisterScreen() {
     if (countdown > 0 || !formData) return;
     setLoading(true);
     try {
-      await authApi.sendRegisterOtp(formData.mobile);
+      const phoneNumber = "+63" + formData.mobile.slice(1);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirm(confirmation);
       setCountdown(60);
       setOtp("");
       Toast.show({ type: "success", text1: "OTP resent!" });
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Failed to resend OTP" });
+      Toast.show({ type: "error", text1: err?.message || "Failed to resend OTP" });
     } finally {
       setLoading(false);
     }

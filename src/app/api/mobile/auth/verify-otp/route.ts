@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/database/prisma";
+import { getAdminAuth } from "@/lib/firebase/admin";
 import { signAccessToken, signRefreshToken } from "@/lib/auth/jwt";
 import { rateLimit } from "@/lib/mobile/rate-limit";
 import { z } from "zod";
 
 const schema = z.object({
   mobile: z.string().regex(/^09\d{9}$/),
-  code: z.string().length(6),
+  firebaseToken: z.string().min(1),
 });
 
 async function getLocationFromIP(ip: string): Promise<string | null> {
@@ -29,7 +30,21 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
 
-  const { mobile, code } = parsed.data;
+  const { mobile, firebaseToken } = parsed.data;
+
+  // Verify Firebase token
+  let decoded;
+  try {
+    decoded = await getAdminAuth().verifyIdToken(firebaseToken);
+  } catch {
+    return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
+  }
+
+  // Verify phone number matches
+  const normalizedMobile = "+63" + mobile.slice(1);
+  if (decoded.phone_number !== normalizedMobile) {
+    return NextResponse.json({ error: "Phone number mismatch" }, { status: 400 });
+  }
 
   const user = await prisma.user.findUnique({
     where: { mobile },
@@ -38,24 +53,6 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (user.status === "SUSPENDED") return NextResponse.json({ error: "Account suspended" }, { status: 403 });
 
-  const otp = await prisma.otpCode.findFirst({
-    where: {
-      userId: user.id,
-      type: { in: ["MOBILE_LOGIN", "MOBILE_VERIFY"] },
-      used: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (!otp || otp.code !== code) {
-    return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
-  }
-
-  // Mark OTP used
-  await prisma.otpCode.update({ where: { id: otp.id }, data: { used: true } });
-
-  // Mark mobile verified if not already
   if (!user.mobileVerified) {
     await prisma.user.update({ where: { id: user.id }, data: { mobileVerified: true, status: "ACTIVE" } });
   }

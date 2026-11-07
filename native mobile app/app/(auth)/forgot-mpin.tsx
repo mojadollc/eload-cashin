@@ -6,6 +6,7 @@ import {
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { authApi } from "@/api/endpoints";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
@@ -86,6 +87,8 @@ export default function ForgotMpinScreen() {
   const [confirmPin, setConfirmPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
+  const [firebaseToken, setFirebaseToken] = useState("");
 
   useEffect(() => {
     if (countdown > 0) {
@@ -101,21 +104,34 @@ export default function ForgotMpinScreen() {
     }
     setLoading(true);
     try {
-      await authApi.sendResetMpinOtp(mobile);
+      const phoneNumber = "+63" + mobile.slice(1);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirm(confirmation);
       setStep("otp");
       setCountdown(60);
       Toast.show({ type: "success", text1: "OTP sent!" });
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Failed to send OTP" });
+      Toast.show({ type: "error", text1: err?.message || "Failed to send OTP" });
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length < 6) return;
-    // Just move to reset step — OTP will be verified together with new PIN
-    setStep("reset");
+    if (otp.length < 6 || !confirm) return;
+    setLoading(true);
+    try {
+      const credential = await confirm.confirm(otp);
+      const token = await credential!.user.getIdToken();
+      await auth().signOut();
+      setFirebaseToken(token);
+      setStep("reset");
+    } catch (err: any) {
+      Toast.show({ type: "error", text1: err?.message || "Invalid OTP" });
+      setOtp("");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetMpin = async () => {
@@ -123,7 +139,7 @@ export default function ForgotMpinScreen() {
     if (newPin !== confirmPin) { Toast.show({ type: "error", text1: "MPINs do not match" }); setConfirmPin(""); return; }
     setLoading(true);
     try {
-      await authApi.resetMpin(mobile, otp, newPin);
+      await authApi.resetMpin(mobile, firebaseToken, newPin);
       setStep("done");
     } catch (err: any) {
       Toast.show({ type: "error", text1: err?.response?.data?.error || "Failed to reset MPIN" });
@@ -136,12 +152,14 @@ export default function ForgotMpinScreen() {
     if (countdown > 0) return;
     setLoading(true);
     try {
-      await authApi.sendResetMpinOtp(mobile);
+      const phoneNumber = "+63" + mobile.slice(1);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirm(confirmation);
       setCountdown(60);
       setOtp("");
       Toast.show({ type: "success", text1: "OTP resent!" });
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Failed to resend OTP" });
+      Toast.show({ type: "error", text1: err?.message || "Failed to resend OTP" });
     } finally {
       setLoading(false);
     }
@@ -160,7 +178,7 @@ export default function ForgotMpinScreen() {
           <View style={styles.content}>
             <Text style={styles.icon}>🔑</Text>
             <Text style={styles.heading}>Forgot MPIN?</Text>
-            <Text style={styles.subheading}>Enter your registered mobile number to reset your MPIN via OTP.</Text>
+            <Text style={styles.subheading}>Enter your registered mobile number to reset your MPIN.</Text>
             <Input label="Mobile Number" placeholder="09XXXXXXXXX" keyboardType="phone-pad" value={mobile} onChangeText={setMobile} leftIcon="phone-portrait-outline" />
             <Button title="Send OTP" onPress={handleSendOtp} loading={loading} size="lg" />
           </View>
@@ -172,7 +190,7 @@ export default function ForgotMpinScreen() {
             <Text style={styles.heading}>Verify Mobile</Text>
             <Text style={styles.subheading}>OTP sent to <Text style={styles.bold}>{mobile}</Text></Text>
             <OtpBoxes value={otp} onChange={setOtp} />
-            <Button title="Next" onPress={handleVerifyOtp} disabled={otp.length < 6} size="lg" style={styles.btn} />
+            <Button title="Next" onPress={handleVerifyOtp} loading={loading} disabled={otp.length < 6} size="lg" style={styles.btn} />
             <View style={styles.resendRow}>
               {countdown > 0 ? (
                 <Text style={styles.countdownText}>Resend in {countdown}s</Text>

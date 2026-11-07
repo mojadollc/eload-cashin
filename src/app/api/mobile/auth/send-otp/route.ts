@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { mobile } });
   if (!user) return NextResponse.json({ error: "No account found with this number. Please register first." }, { status: 404 });
 
-  // Invalidate old OTPs
   await prisma.otpCode.updateMany({
     where: { userId: user.id, type: "MOBILE_LOGIN", used: false },
     data: { used: true },
@@ -38,11 +37,30 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // TODO: Send SMS via your SMS provider (Semaphore, Vonage, etc.)
-  // For now, log in dev — remove before production
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[DEV] OTP for ${mobile}: ${code}`);
-  }
+  await sendSms(mobile, `Your CashIn Tap OTP is: ${code}. Valid for 10 minutes. Do not share this code.`);
 
   return NextResponse.json({ message: "OTP sent successfully.", expiresIn: 600 });
+}
+
+async function sendSms(mobile: string, message: string): Promise<void> {
+  const apiKey = process.env.SEMAPHORE_API_KEY;
+  if (!apiKey) {
+    console.log(`[DEV] OTP for ${mobile}: ${message}`);
+    return;
+  }
+  const res = await fetch("https://api.semaphore.co/api/v4/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      apikey: apiKey,
+      number: mobile,
+      message,
+      sendername: process.env.SEMAPHORE_SENDER_NAME ?? "CASHIN",
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("[SMS] Semaphore error:", err);
+    throw new Error("Failed to send SMS");
+  }
 }

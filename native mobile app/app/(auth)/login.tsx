@@ -6,6 +6,7 @@ import {
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import { authApi } from "@/api/endpoints";
 import { useAuthStore } from "@/store/authStore";
 import Button from "@/components/Button";
@@ -82,7 +83,7 @@ function OtpBoxes({ value, onChange }: { value: string; onChange: (v: string) =>
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const setAuth = useAuthStore((s: any) => s.setAuth);
 
   const [step, setStep] = useState<Step>("mobile");
   const [mobile, setMobile] = useState("");
@@ -90,6 +91,7 @@ export default function LoginScreen() {
   const [mpin, setMpin] = useState("");
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [confirm, setConfirm] = useState<FirebaseAuthTypes.ConfirmationResult | null>(null);
   const [pendingAuth, setPendingAuth] = useState<{ accessToken: string; refreshToken: string; user: any } | null>(null);
 
   useEffect(() => {
@@ -106,23 +108,28 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await authApi.sendLoginOtp(mobile);
+      const phoneNumber = "+63" + mobile.slice(1);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirm(confirmation);
       setStep("otp");
       setCountdown(60);
       Toast.show({ type: "success", text1: "OTP sent to your mobile!" });
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Failed to send OTP" });
+      Toast.show({ type: "error", text1: err?.message || "Failed to send OTP" });
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length < 6) return;
+    if (otp.length < 6 || !confirm) return;
     setLoading(true);
     try {
-      const res = await authApi.verifyLoginOtp(mobile, otp);
+      const credential = await confirm.confirm(otp);
+      const firebaseToken = await credential!.user.getIdToken();
+      const res = await authApi.verifyLoginOtp(mobile, firebaseToken);
       const { accessToken, refreshToken, requiresMpin, user } = res.data;
+      await auth().signOut();
       if (requiresMpin) {
         setPendingAuth({ accessToken, refreshToken, user });
         setStep("mpin");
@@ -131,7 +138,7 @@ export default function LoginScreen() {
         router.replace("/(auth)/set-mpin");
       }
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Invalid or expired OTP" });
+      Toast.show({ type: "error", text1: err?.response?.data?.error || err?.message || "Invalid OTP" });
       setOtp("");
     } finally {
       setLoading(false);
@@ -157,12 +164,14 @@ export default function LoginScreen() {
     if (countdown > 0) return;
     setLoading(true);
     try {
-      await authApi.sendLoginOtp(mobile);
+      const phoneNumber = "+63" + mobile.slice(1);
+      const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+      setConfirm(confirmation);
       setCountdown(60);
       setOtp("");
       Toast.show({ type: "success", text1: "OTP resent!" });
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err?.response?.data?.error || "Failed to resend OTP" });
+      Toast.show({ type: "error", text1: err?.message || "Failed to resend OTP" });
     } finally {
       setLoading(false);
     }

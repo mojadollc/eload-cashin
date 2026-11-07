@@ -32,8 +32,20 @@
         {
           "faceIDPermission": "Allow CashIn Tap to use Face ID"
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
     ],
+    "android": {
+      "package": "com.cashintap.app",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "CAMERA",
+        "VIBRATE"
+      ]
+    },
     "experiments": {
       "typedRoutes": true
     }

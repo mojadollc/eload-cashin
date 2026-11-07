@@ -5,9 +5,9 @@ export const authApi = {
   sendLoginOtp: (mobile: string) =>
     api.post("/api/mobile/auth/send-otp", { mobile }),
 
-  // Login step 2: verify OTP → get JWT + requiresMpin flag
-  verifyLoginOtp: (mobile: string, code: string) =>
-    api.post("/api/mobile/auth/verify-otp", { mobile, code }),
+  // Login step 2: verify Firebase token → get JWT + requiresMpin flag
+  verifyLoginOtp: (mobile: string, firebaseToken: string) =>
+    api.post("/api/mobile/auth/verify-otp", { mobile, firebaseToken }),
 
   // Login step 3: verify 4-digit MPIN to unlock session
   verifyMpin: (mpin: string, accessToken: string) =>
@@ -28,9 +28,9 @@ export const authApi = {
   sendRegisterOtp: (mobile: string) =>
     api.post("/api/mobile/auth/register-otp", { mobile }),
 
-  // Register step 3: verify OTP → activate account + get JWT
-  verifyRegisterOtp: (mobile: string, code: string) =>
-    api.post("/api/mobile/auth/verify-otp", { mobile, code }),
+  // Register step 3: verify Firebase token → activate account + get JWT
+  verifyRegisterOtp: (mobile: string, firebaseToken: string) =>
+    api.post("/api/mobile/auth/verify-otp", { mobile, firebaseToken }),
 
   // Set MPIN after first login / registration
   setMpin: (pin: string, accessToken: string) =>
@@ -42,9 +42,9 @@ export const authApi = {
   sendResetMpinOtp: (mobile: string) =>
     api.post("/api/mobile/auth/reset-mpin", { mobile }),
 
-  // Forgot MPIN step 2: verify OTP + set new MPIN
-  resetMpin: (mobile: string, code: string, newPin: string) =>
-    api.post("/api/mobile/auth/reset-mpin", { mobile, code, newPin }),
+  // Forgot MPIN step 2: verify Firebase token + set new MPIN
+  resetMpin: (mobile: string, firebaseToken: string, newPin: string) =>
+    api.post("/api/mobile/auth/reset-mpin", { mobile, firebaseToken, newPin }),
 
   logout: () => api.post("/api/mobile/auth/logout"),
 };
