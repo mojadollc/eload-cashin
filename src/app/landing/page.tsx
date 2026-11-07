@@ -6,17 +6,17 @@ import {
 import LandingNav from "./nav";
 
 const features = [
-  { icon: Wallet, title: "Digital Wallet", desc: "Store, manage, and track your money with a secure ledger-based wallet system.", color: "bg-teal-50 text-teal-600" },
-  { icon: Smartphone, title: "E-Load", desc: "Buy mobile load for Globe, Smart, DITO, TM, TNT, Sun instantly.", color: "bg-blue-50 text-blue-600" },
-  { icon: ArrowDownCircle, title: "Cash Out", desc: "Send money to GCash, Maya, or any bank account in minutes.", color: "bg-purple-50 text-purple-600" },
-  { icon: Shield, title: "Secure & Safe", desc: "Bank-grade security with OTP verification, JWT auth, and encrypted transactions.", color: "bg-green-50 text-green-600" },
-  { icon: Zap, title: "Instant Processing", desc: "Real-time transaction processing powered by BullMQ queue workers.", color: "bg-yellow-50 text-yellow-600" },
-  { icon: CheckCircle, title: "Always Reliable", desc: "Idempotent webhooks and ledger-first design ensure zero double-charges.", color: "bg-red-50 text-red-600" },
+  { icon: Wallet, title: "Digital Wallet", desc: "Store, manage, and track your money securely — your balance is always up to date.", color: "bg-teal-50 text-teal-600" },
+  { icon: Smartphone, title: "E-Load", desc: "Buy mobile load for Globe, Smart, DITO, TM, TNT, and Sun in just a few taps.", color: "bg-blue-50 text-blue-600" },
+  { icon: ArrowDownCircle, title: "Cash Out", desc: "Send money to GCash, Maya, or any bank account in minutes — no hassle.", color: "bg-purple-50 text-purple-600" },
+  { icon: Shield, title: "Secure & Safe", desc: "Your money and data are protected with bank-grade security and OTP verification.", color: "bg-green-50 text-green-600" },
+  { icon: Zap, title: "Instant Processing", desc: "Transactions are processed in real time so you never have to wait.", color: "bg-yellow-50 text-yellow-600" },
+  { icon: CheckCircle, title: "Always Reliable", desc: "Every transaction is tracked and verified — zero double-charges, guaranteed.", color: "bg-red-50 text-red-600" },
 ];
 
 const steps = [
   { step: "01", title: "Create Account", desc: "Register with your mobile number and verify via OTP in under 2 minutes." },
-  { step: "02", title: "Fund Your Wallet", desc: "Add money via GCash, Maya, card, or bank transfer through PayMongo." },
+  { step: "02", title: "Fund Your Wallet", desc: "Add money via GCash, Maya, card, or bank transfer — fast and easy." },
   { step: "03", title: "Use Services", desc: "Buy e-load, cash out to any account, or track all your transactions." },
 ];
 
@@ -135,13 +135,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Trusted by */}
+      {/* Networks supported */}
       <section className="py-12 bg-gray-50 border-y border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <p className="text-center text-xs text-gray-400 font-semibold uppercase tracking-widest mb-8">Powered by Trusted Providers</p>
+          <p className="text-center text-xs text-gray-400 font-semibold uppercase tracking-widest mb-8">Supported Networks & Payment Methods</p>
           <div className="flex flex-wrap justify-center items-center gap-6 lg:gap-10">
             {[
-              { name: "PayMongo", img: "/providers/paymongo.png" },
               { name: "Globe",    img: "/providers/globe.png" },
               { name: "Smart",    img: "/providers/smart.png" },
               { name: "DITO",     img: "/providers/dito.png" },
@@ -155,14 +154,11 @@ export default function LandingPage() {
                 <span className="text-xs font-semibold text-gray-400">{name}</span>
               </div>
             ))}
-            {/* Xendit — inline SVG logo */}
             <div className="flex flex-col items-center gap-2">
               <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center p-2 hover:shadow-md transition-shadow">
-                <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-                  <text x="0" y="26" fontFamily="Arial,sans-serif" fontSize="28" fontWeight="700" fill="#0066FF">xendit</text>
-                </svg>
+                <span className="text-2xl">🏦</span>
               </div>
-              <span className="text-xs font-semibold text-gray-400">Xendit</span>
+              <span className="text-xs font-semibold text-gray-400">Any Bank</span>
             </div>
           </div>
         </div>
