@@ -45,9 +45,7 @@ export default function PwaInstallPrompt() {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 animate-in slide-in-from-bottom duration-300">
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 flex items-center gap-4">
-        <div className="w-12 h-12 bg-[#038E80] rounded-2xl flex items-center justify-center shrink-0">
-          <Wallet size={22} className="text-white" />
-        </div>
+        <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-12 h-12 rounded-2xl" />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm text-[#17202A]">Install CashIn Tap</p>
           <p className="text-xs text-gray-500 mt-0.5">Add to your home screen for quick access</p>

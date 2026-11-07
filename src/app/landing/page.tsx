@@ -259,7 +259,7 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-4 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-10 h-10" />
+                <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-12 h-12" />
               </div>
               <p className="text-sm leading-relaxed">Your trusted digital wallet for e-load, cash out, and more.</p>
             </div>

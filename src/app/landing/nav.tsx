@@ -20,7 +20,7 @@ export default function LandingNav() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-transparent"}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-10 h-10" />
+            <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-12 h-12" />
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-medium text-gray-600 hover:text-[#038E80] transition-colors">Features</a>

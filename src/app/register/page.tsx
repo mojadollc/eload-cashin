@@ -182,7 +182,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/">
-            <img src="/icons/icon-192.png" alt="CashIn Tap" className="h-16 mx-auto mb-2" />
+            <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-20 h-20 mx-auto mb-3" />
           </Link>
           <p className="text-gray-500 mt-1">{step === "register" ? "Create your account" : "Verify your mobile"}</p>
         </div>
