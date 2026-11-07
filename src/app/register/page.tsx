@@ -181,7 +181,9 @@ export default function RegisterPage() {
       {showSuccess && <SuccessModal mobile={form.mobile} onClose={() => router.push("/login")} />}
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <Link href="/"><h1 className="text-3xl font-bold text-[#038E80] hover:opacity-80 transition-opacity">CashIn Tap</h1></Link>
+          <Link href="/">
+            <img src="/providers/paymongo.png" alt="CashIn Tap" className="h-12 mx-auto mb-2" />
+          </Link>
           <p className="text-gray-500 mt-1">{step === "register" ? "Create your account" : "Verify your mobile"}</p>
         </div>
         <Card>
