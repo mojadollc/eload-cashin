@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
   // Set/update PIN
   const parsed = setPinSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
 
   const pinHash = await hashPin(parsed.data.pin);
 
