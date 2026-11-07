@@ -361,6 +361,8 @@ model Session {
   id        String   @id @default(cuid())
   userId    String
   token     String   @unique
+  ipAddress String?
+  location  String?  // City, Region, Country from IP
   expiresAt DateTime
   createdAt DateTime @default(now())
 

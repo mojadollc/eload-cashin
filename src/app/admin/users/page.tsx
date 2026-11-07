@@ -132,6 +132,27 @@ function UserDrawer({ userId, onClose, onUpdated }: { userId: string; onClose: (
                     <DetailRow label="Total Transactions" value={user._count?.transactions ?? 0} />
                     <DetailRow label="Joined" value={formatDate(user.createdAt)} />
                   </div>
+
+                  {/* Session / Location History */}
+                  {user.sessions?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Login History (IP & Location)</p>
+                      <div className="space-y-2">
+                        {user.sessions.map((s: any) => (
+                          <div key={s.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">{s.ipAddress || "Unknown IP"}</p>
+                                <p className="text-[10px] text-gray-400">{s.location || "Location unavailable"}</p>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-gray-400">{formatDate(s.createdAt)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

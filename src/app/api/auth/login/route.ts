@@ -10,8 +10,32 @@ const schema = z.object({
   password: z.string(),
 });
 
+// Get approximate location from IP using free ip-api.com
+async function getLocationFromIP(ip: string): Promise<string | null> {
+  if (!ip || ip === "unknown" || ip === "127.0.0.1" || ip === "localhost") return null;
+  
+  try {
+    // Use ip-api.com free API (only works for non-localhost IPs)
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`, { 
+      // Use proxy through our server to avoid CORS
+      method: "GET",
+      // @ts-ignore
+    }).catch(() => null);
+    
+    if (!res) return null;
+    
+    const data = await res.json() as { status: string; country: string; regionName: string; city: string };
+    if (data.status === "success" && data.city) {
+      return `${data.city}, ${data.regionName}, ${data.country}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? "unknown";
   const { allowed } = await rateLimit(`login:${ip}`, 10, 60);
   if (!allowed) return NextResponse.json({ error: "Too many login attempts. Try again later." }, { status: 429 });
 
@@ -33,8 +57,17 @@ export async function POST(req: NextRequest) {
   const accessToken = signAccessToken({ userId: user.id, role: user.role });
   const refreshToken = signRefreshToken({ userId: user.id, role: user.role });
 
+  // Get location from IP asynchronously (don't block login)
+  const location = await getLocationFromIP(ip);
+
   await prisma.session.create({
-    data: { userId: user.id, token: refreshToken, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+    data: { 
+      userId: user.id, 
+      token: refreshToken, 
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      ipAddress: ip,
+      location: location,
+    },
   });
 
   const res = NextResponse.json({

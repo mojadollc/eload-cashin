@@ -20,6 +20,7 @@ export const GET = requireAuth(async (_req: NextRequest, _payload: JwtPayload, c
         take: 10,
       },
       kycDocuments: { orderBy: { createdAt: "desc" } },
+      sessions: { orderBy: { createdAt: "desc" }, take: 10 },
       _count: { select: { transactions: true } },
     },
   });
