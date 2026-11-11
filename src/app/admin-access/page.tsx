@@ -3,6 +3,8 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/shared/auth-context";
 
+const ADMIN_KEY = "ct-admin-9x7k2m";
+
 function AdminAccessForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -13,8 +15,7 @@ function AdminAccessForm() {
   const [loading, setLoading] = useState(false);
 
   const key = searchParams.get("k");
-  const SECRET = process.env.NEXT_PUBLIC_ADMIN_ACCESS_KEY;
-  if (!SECRET || key !== SECRET) return null;
+  if (key !== ADMIN_KEY) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
