@@ -1,24 +1,26 @@
 "use client";
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/shared/auth-context";
 
 const ADMIN_KEY = "ct-admin-9x7k2m";
 
 function AdminAccessForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
   const key = searchParams.get("k");
   if (key !== ADMIN_KEY) return null;
 
+  // Use window.location instead of router.push to avoid auth guard redirect race
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (done) return;
     setLoading(true); setError("");
     try {
       const res = await fetch("/api/auth/login", {
@@ -29,7 +31,8 @@ function AdminAccessForm() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invalid credentials"); return; }
       login(data.accessToken, data.user);
-      router.push("/admin");
+      setDone(true);
+      window.location.href = "/admin";
     } catch {
       setError("Something went wrong. Try again.");
     } finally {

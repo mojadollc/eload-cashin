@@ -48,8 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initial = readAuth();
   const [user, setUser] = useState<User | null>(initial.user);
   const [accessToken, setAccessToken] = useState<string | null>(initial.accessToken);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Mark loading done after first mount (localStorage already read synchronously)
+  useEffect(() => { setLoading(false); }, []);
 
   const logout = () => {
     if (refreshTimer.current) clearTimeout(refreshTimer.current);

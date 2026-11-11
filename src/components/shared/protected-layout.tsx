@@ -11,14 +11,15 @@ const Spinner = () => (
 );
 
 export function UserLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (loading) return;
     if (user === null) router.push("/login");
-  }, [user, router]);
+  }, [user, loading, router]);
 
-  if (!user) return <Spinner />;
+  if (loading || !user) return <Spinner />;
 
   return (
     <div className="flex min-h-screen min-h-[100dvh]">
@@ -38,15 +39,16 @@ export function UserLayout({ children }: { children: React.ReactNode }) {
 }
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (loading) return;
     if (user === null) router.push("/login");
     else if (!isAdmin) router.push("/dashboard");
-  }, [user, isAdmin, router]);
+  }, [user, isAdmin, loading, router]);
 
-  if (!user || !isAdmin) return <Spinner />;
+  if (loading || !user || !isAdmin) return <Spinner />;
 
   return <>{children}</>;
 }
