@@ -1,10 +1,12 @@
 "use client";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/shared/auth-context";
 
 function AdminAccessForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,7 +27,7 @@ function AdminAccessForm() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invalid credentials"); return; }
-      localStorage.setItem("auth", JSON.stringify({ user: data.user, accessToken: data.accessToken }));
+      login(data.accessToken, data.user);
       router.push("/admin");
     } catch {
       setError("Something went wrong. Try again.");
