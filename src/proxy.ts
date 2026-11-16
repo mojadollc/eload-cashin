@@ -38,6 +38,11 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Never redirect the landing page
+  if (pathname === "/") {
+    return NextResponse.next();
+  }
+
   // Public routes — redirect authenticated users away
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   if (isPublicRoute && isAuthenticated) {
