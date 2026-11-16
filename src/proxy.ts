@@ -43,7 +43,12 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Public routes — redirect authenticated users away
+  // login/register — never auto-redirect, let the page handle it
+  if (pathname === "/login" || pathname === "/register") {
+    return NextResponse.next();
+  }
+
+  // Public routes — redirect authenticated users away (except login/register handled above)
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   if (isPublicRoute && isAuthenticated) {
     const redirectTo = ["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(userRole || "") ? "/admin" : "/dashboard";
