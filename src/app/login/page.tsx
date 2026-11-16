@@ -37,7 +37,7 @@ function PinInput({ value, onChange, length = 4 }: { value: string; onChange: (v
   };
 
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="flex gap-2 justify-center">
       {Array.from({ length }).map((_, i) => (
         <input
           key={i}
@@ -49,7 +49,9 @@ function PinInput({ value, onChange, length = 4 }: { value: string; onChange: (v
           onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          className="w-14 h-14 text-center text-2xl font-bold border-2 rounded-xl border-gray-200 focus:border-[#038E80] focus:ring-2 focus:ring-[#038E80]/20 focus:outline-none transition-all"
+          className={`${
+            length === 6 ? "w-11 h-11 text-xl" : "w-14 h-14 text-2xl"
+          } text-center font-bold border-2 rounded-xl border-gray-200 focus:border-[#038E80] focus:ring-2 focus:ring-[#038E80]/20 focus:outline-none transition-all`}
         />
       ))}
     </div>
