@@ -46,8 +46,8 @@ export function proxy(req: NextRequest) {
   }
 
   // Protected routes - redirect unauthenticated users to login
+  const isAdminRoute = pathname.startsWith("/admin");
   const isProtectedRoute = pathname.startsWith("/dashboard") || 
-                           pathname.startsWith("/admin") || 
                            pathname.startsWith("/wallet") ||
                            pathname.startsWith("/eload") ||
                            pathname.startsWith("/cashout") ||
@@ -57,6 +57,10 @@ export function proxy(req: NextRequest) {
                            pathname.startsWith("/notifications") ||
                            pathname.startsWith("/support");
   
+  if (isAdminRoute && !isAuthenticated) {
+    return NextResponse.redirect(new URL(`/admin-access?k=ct-admin-9x7k2m`, req.url));
+  }
+
   if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
@@ -64,7 +68,7 @@ export function proxy(req: NextRequest) {
   }
 
   // Admin-only routes
-  if (pathname.startsWith("/admin") && userRole && !["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(userRole)) {
+  if (isAdminRoute && userRole && !["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(userRole)) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

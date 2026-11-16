@@ -91,6 +91,13 @@ function LoginForm() {
       const { auth } = await import("@/lib/firebase/client");
       const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
       if (!recaptchaRef.current) {
+        // Create container dynamically only when needed
+        let container = document.getElementById("recaptcha-container");
+        if (!container) {
+          container = document.createElement("div");
+          container.id = "recaptcha-container";
+          document.body.appendChild(container);
+        }
         recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
       }
       const result = await signInWithPhoneNumber(auth, mobile.replace(/^0/, "+63"), recaptchaRef.current);
@@ -164,6 +171,12 @@ function LoginForm() {
       const { auth } = await import("@/lib/firebase/client");
       const { RecaptchaVerifier, signInWithPhoneNumber } = await import("firebase/auth");
       recaptchaRef.current?.clear();
+      let container = document.getElementById("recaptcha-container");
+      if (!container) {
+        container = document.createElement("div");
+        container.id = "recaptcha-container";
+        document.body.appendChild(container);
+      }
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
       const result = await signInWithPhoneNumber(auth, mobile.replace(/^0/, "+63"), recaptchaRef.current);
       setConfirmation(result);
@@ -180,7 +193,6 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div id="recaptcha-container" />
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/">
