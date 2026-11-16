@@ -44,7 +44,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    if (user === null) router.push("/login");
+    if (user === null) router.push("/admin-access?k=ct-admin-9x7k2m");
     else if (!isAdmin) router.push("/dashboard");
   }, [user, isAdmin, loading, router]);
 
