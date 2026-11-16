@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/landing", "/admin-access"];
-const PUBLIC_API = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh", "/api/mobile/auth/"];
+const PUBLIC_ROUTES = ["/", "/login", "/register", "/forgot-password", "/landing", "/admin-access", "/forgot-mpin"];
+const PUBLIC_API = ["/api/auth/login", "/api/auth/register", "/api/auth/verify-otp", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/refresh", "/api/mobile/auth/", "/api/auth/forgot-mpin"];
 
 function getTokenFromRequest(req: NextRequest): string | null {
   const auth = req.headers.get("authorization");
@@ -26,28 +26,37 @@ export function proxy(req: NextRequest) {
   const isAuthenticated = token ? verifyToken(token).valid : false;
   const userRole = token ? verifyToken(token).role : null;
 
-  // API routes - let auth APIs through
+  // API routes
   if (pathname.startsWith("/api/")) {
-    if (PUBLIC_API.some(route => pathname.startsWith(route))) {
-      return NextResponse.next();
-    }
-    // Protect API routes that need auth
-    if (!isAuthenticated) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (PUBLIC_API.some(route => pathname.startsWith(route))) return NextResponse.next();
+    if (!isAuthenticated) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     return NextResponse.next();
   }
 
-  // Public routes - redirect authenticated users away
+  // Always allow admin-access page through — no redirects
+  if (pathname.startsWith("/admin-access")) {
+    return NextResponse.next();
+  }
+
+  // Public routes — redirect authenticated users away
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   if (isPublicRoute && isAuthenticated) {
     const redirectTo = ["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(userRole || "") ? "/admin" : "/dashboard";
     return NextResponse.redirect(new URL(redirectTo, req.url));
   }
 
-  // Protected routes - redirect unauthenticated users to login
-  const isAdminRoute = pathname.startsWith("/admin");
-  const isProtectedRoute = pathname.startsWith("/dashboard") || 
+  // Admin routes — redirect unauthenticated to admin-access
+  if (pathname.startsWith("/admin") && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/admin-access?k=ct-admin-9x7k2m", req.url));
+  }
+
+  // Admin routes — redirect non-admin to dashboard
+  if (pathname.startsWith("/admin") && userRole && !["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(userRole)) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
+  // Protected user routes
+  const isProtectedRoute = pathname.startsWith("/dashboard") ||
                            pathname.startsWith("/wallet") ||
                            pathname.startsWith("/eload") ||
                            pathname.startsWith("/cashout") ||
@@ -56,20 +65,11 @@ export function proxy(req: NextRequest) {
                            pathname.startsWith("/profile") ||
                            pathname.startsWith("/notifications") ||
                            pathname.startsWith("/support");
-  
-  if (isAdminRoute && !isAuthenticated) {
-    return NextResponse.redirect(new URL(`/admin-access?k=ct-admin-9x7k2m`, req.url));
-  }
 
   if (isProtectedRoute && !isAuthenticated) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Admin-only routes
-  if (isAdminRoute && userRole && !["SUPER_ADMIN", "ADMIN", "FINANCE", "SUPPORT"].includes(userRole)) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return NextResponse.next();
