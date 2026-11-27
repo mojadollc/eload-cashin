@@ -39,6 +39,20 @@ export default function CashoutScreen() {
     queryFn: () => cashoutApi.getDestinations().then((r) => r.data.data),
   });
 
+  const parsedAmount = parseFloat(amount);
+  const validAmount = !isNaN(parsedAmount) && parsedAmount >= 5;
+
+  const { data: feeData } = useQuery({
+    queryKey: ["cashout-fees", parsedAmount],
+    queryFn: () => cashoutApi.getFees(parsedAmount).then((r) => r.data.data),
+    enabled: validAmount,
+  });
+
+  const systemFee: number = feeData?.systemFee ?? 0;
+  const paymongoFee: number = feeData?.paymongoFee ?? 0;
+  const totalFee = systemFee + paymongoFee;
+  const totalDeducted = validAmount ? parsedAmount + totalFee : 0;
+
   const fillDestination = (dest: any) => {
     setChannel(dest.channel);
     setAccountNumber(dest.accountNumber);
@@ -51,24 +65,26 @@ export default function CashoutScreen() {
     if (!accountNumber) { Toast.show({ type: "error", text1: "Enter account number" }); return; }
     if (!accountName) { Toast.show({ type: "error", text1: "Enter account name" }); return; }
     if (!num || num < 5) { Toast.show({ type: "error", text1: "Minimum cashout is ₱5" }); return; }
-    if (num > parseFloat(wallet?.availableBalance || "0")) {
+    if (totalDeducted > parseFloat(wallet?.availableBalance || "0")) {
       Toast.show({ type: "error", text1: "Insufficient balance" }); return;
     }
     Alert.alert(
       "Confirm Cash Out",
-      `Send ${formatCurrency(num)} to\n${accountName}\n${channel} · ${accountNumber}`,
+      `Send ${formatCurrency(num)} to\n${accountName}\n${channel} · ${accountNumber}\n\nFee: ${formatCurrency(totalFee)}\nTotal deducted: ${formatCurrency(totalDeducted)}`,
       [{ text: "Cancel", style: "cancel" }, { text: "Confirm", onPress: doCashout }]
     );
   };
 
   const doCashout = async () => {
     setLoading(true);
+    const idempotencyKey = crypto.randomUUID();
     try {
-      await cashoutApi.request({ amount: parseFloat(amount), channel, accountNumber, accountName });
+      await cashoutApi.request({ amount: parseFloat(amount), channel, accountNumber, accountName }, idempotencyKey);
       Toast.show({ type: "success", text1: "Cash out submitted!", text2: "Processing may take a few minutes." });
       router.push("/(tabs)/transactions");
     } catch (err: any) {
-      Toast.show({ type: "error", text1: err.response?.data?.error || "Cash out failed" });
+      const msg = err.response?.data?.error || "Cash out failed";
+      Toast.show({ type: "error", text1: msg });
     } finally { setLoading(false); }
   };
 
@@ -164,7 +180,7 @@ export default function CashoutScreen() {
         </View>
 
         {/* Summary */}
-        {channel && accountNumber && amount && parseFloat(amount) >= 5 && (
+        {channel && accountNumber && validAmount && (
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Channel</Text>
@@ -175,8 +191,21 @@ export default function CashoutScreen() {
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>You'll receive</Text>
-              <Text style={[styles.summaryValue, styles.summaryTotal]}>{formatCurrency(parseFloat(amount) || 0)}</Text>
+              <Text style={styles.summaryLabel}>Amount</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(parsedAmount)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>System fee</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(systemFee)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Transfer fee</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(paymongoFee)}</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total deducted</Text>
+              <Text style={[styles.summaryValue, styles.summaryTotal]}>{formatCurrency(totalDeducted)}</Text>
             </View>
           </View>
         )}

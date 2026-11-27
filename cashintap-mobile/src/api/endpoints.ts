@@ -78,12 +78,12 @@ export const eloadApi = {
 };
 
 export const cashoutApi = {
-  request: (data: {
-    amount: number;
-    channel: string;
-    accountNumber: string;
-    accountName: string;
-  }) => api.post("/api/mobile/cashout/request", data),
+  request: (
+    data: { amount: number; channel: string; accountNumber: string; accountName: string },
+    idempotencyKey: string
+  ) => api.post("/api/mobile/cashout/request", data, { headers: { "Idempotency-Key": idempotencyKey } }),
+  getFees: (amount: number) =>
+    api.get(`/api/mobile/fees?service=CASHOUT&amount=${amount}`),
   getDestinations: () => api.get("/api/mobile/cashout/destinations"),
   saveDestination: (data: {
     channel: string;
