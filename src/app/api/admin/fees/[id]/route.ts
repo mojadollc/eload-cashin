@@ -3,7 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import { requireAuth, ADMIN_ROLES } from "@/lib/auth/middleware";
 import { JwtPayload } from "@/lib/auth/jwt";
 
-export const PUT = requireAuth(async (req: NextRequest, _payload: JwtPayload, ctx: { params: Promise<{ id: string }> }) => {
+export const PUT = requireAuth(async (req: NextRequest, _payload: JwtPayload, ctx: any) => {
   const { id } = await ctx.params;
   const body = await req.json();
   const rule = await prisma.feeRule.update({
@@ -22,7 +22,7 @@ export const PUT = requireAuth(async (req: NextRequest, _payload: JwtPayload, ct
   return NextResponse.json(rule);
 }, ADMIN_ROLES);
 
-export const DELETE = requireAuth(async (req: NextRequest, _payload: JwtPayload, ctx: { params: Promise<{ id: string }> }) => {
+export const DELETE = requireAuth(async (_req: NextRequest, _payload: JwtPayload, ctx: any) => {
   const { id } = await ctx.params;
   await prisma.feeRule.delete({ where: { id } });
   return NextResponse.json({ ok: true });

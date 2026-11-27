@@ -10,7 +10,7 @@ const schema = z.object({
 });
 
 export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload, ctx: any) => {
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -35,7 +35,6 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload, ct
     });
   });
 
-  // Notify user
   if (message) {
     await prisma.notification.create({
       data: {

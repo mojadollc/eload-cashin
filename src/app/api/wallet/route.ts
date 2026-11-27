@@ -7,12 +7,14 @@ export const GET = requireAuth(async (_req: NextRequest, payload: JwtPayload) =>
   const wallet = await prisma.wallet.findUnique({
     where: { userId: payload.userId },
     select: {
+      id: true,
       walletId: true,
       accountNumber: true,
       availableBalance: true,
       pendingBalance: true,
       currency: true,
       status: true,
+      createdAt: true,
     },
   });
   if (!wallet) return NextResponse.json({ error: "Wallet not found" }, { status: 404 });

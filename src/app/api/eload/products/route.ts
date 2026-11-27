@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/middleware";
 import { JwtPayload } from "@/lib/auth/jwt";
-import { getProducts, refreshSkuCache } from "@/providers/gbits/gbits.provider";
+import { getProducts } from "@/providers/gbits/gbits.provider";
 
 export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) => {
   const force = new URL(req.url).searchParams.get("action") === "refresh";
@@ -18,7 +18,7 @@ export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) =>
       return acc;
     }, {});
 
-    return NextResponse.json({ grouped, flat: products });
+    return NextResponse.json({ grouped, flat: products, total: products.length });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to fetch products" }, { status: 500 });
   }

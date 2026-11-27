@@ -7,7 +7,7 @@ import { z } from "zod";
 const schema = z.object({ message: z.string().min(1).max(2000) });
 
 export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload, ctx: any) => {
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Message required" }, { status: 400 });
