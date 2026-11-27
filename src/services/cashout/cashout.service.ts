@@ -1,22 +1,25 @@
 import { prisma } from "@/lib/database/prisma";
 import { TransactionType, TransactionStatus, Provider, FeeService } from "@/types/enums";
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
-import { reserveFunds, releaseHold, consumeHold } from "@/services/wallet/wallet.service";
+import { releaseHold, consumeHold } from "@/services/wallet/wallet.service";
 import { calculateFee } from "@/services/fees/fee.service";
 import { createPayMongoDisbursement } from "@/providers/paymongo/paymongo.provider";
 import { cashoutQueue } from "@/workers/queues";
 
 const PAYMONGO_DISBURSEMENT_FEE = 10;
 
-export async function initiateCashout(userId: string, amount: number, channel: string, accountNumber: string, accountName: string) {
-  const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } });
+export async function initiateCashout(userId: string, amount: number, channel: string, accountNumber: string, accountName: string, idempotencyKey?: string) {
   const markupFee = await calculateFee(FeeService.CASHOUT, amount);
   const fee = markupFee + PAYMONGO_DISBURSEMENT_FEE;
   const totalDeduction = amount + fee;
-
   const provider = Provider.PAYMONGO;
+  const txnIdempotencyKey = idempotencyKey ?? generateIdempotencyKey();
 
-  const transaction = await prisma.$transaction(async (tx: any) => {
+  const { transaction, hold } = await prisma.$transaction(async (tx: any) => {
+    const wallet = await tx.wallet.findUniqueOrThrow({ where: { userId } });
+    if (new Decimal(wallet.availableBalance.toString()).lt(totalDeduction))
+      throw new Error("Insufficient balance");
+
     const txn = await tx.transaction.create({
       data: {
         transactionNumber: generateTransactionNumber("CASHOUT"),
@@ -27,23 +30,25 @@ export async function initiateCashout(userId: string, amount: number, channel: s
         feeAmount: fee,
         netAmount: totalDeduction,
         provider,
-        idempotencyKey: generateIdempotencyKey(),
+        idempotencyKey: txnIdempotencyKey,
       },
     });
     await tx.cashoutTransaction.create({ data: { transactionId: txn.id, channel, accountNumber, accountName } });
     await tx.providerTransaction.create({ data: { transactionId: txn.id, provider } });
-    return txn;
+
+    await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { availableBalance: { decrement: totalDeduction }, pendingBalance: { increment: totalDeduction } },
+    });
+    const h = await tx.walletHold.create({
+      data: { walletId: wallet.id, transactionId: txn.id, amount: totalDeduction, expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+    });
+
+    return { transaction: txn, hold: h };
   });
 
-  let hold;
-  try {
-    hold = await reserveFunds(wallet.id, totalDeduction, transaction.id);
-  } catch (err: any) {
-    await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.CANCELLED, failedAt: new Date() } });
-    throw new Error(err.message || "Insufficient balance");
-  }
   await cashoutQueue.add("process-cashout", { transactionId: transaction.id, holdId: hold.id });
-  return transaction;
+  return { transaction, fee, totalDeduction };
 }
 
 export async function processCashout(transactionId: string, holdId: string) {
