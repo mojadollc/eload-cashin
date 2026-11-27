@@ -26,14 +26,12 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     return NextResponse.json({ error: "Insufficient balance. Please fund your wallet first." }, { status: 403 });
 
   try {
-    const transaction = await initiateCashout(payload.userId, amount, channel, accountNumber, accountName);
-    // feeAmount is set by initiateCashout (markupFee + PAYMONGO_DISBURSEMENT_FEE)
-    const fee = Number(transaction.feeAmount);
+    const { transaction, fee, totalDeduction } = await initiateCashout(payload.userId, amount, channel, accountNumber, accountName);
     return NextResponse.json({
       transactionNumber: transaction.transactionNumber,
       status: transaction.status,
       fee,
-      totalDeducted: amount + fee,
+      totalDeducted: totalDeduction,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });

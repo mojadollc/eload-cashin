@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { TransactionType, TransactionStatus, Provider, FeeService } from "@/types/enums";
+import Decimal from "decimal.js";
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
 import { releaseHold, consumeHold } from "@/services/wallet/wallet.service";
 import { calculateFee } from "@/services/fees/fee.service";
