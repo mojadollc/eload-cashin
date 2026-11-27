@@ -59,25 +59,55 @@ export async function getQRCode(sourceId: string) {
 
 export interface CreateCheckoutSessionParams {
   externalId: string;
-  amount: number;
+  amount: number;        // total charge (walletCredit + systemFee + paymongoFee)
   description: string;
   successUrl: string;
   cancelUrl: string;
+  // Optional fee breakdown for line items
+  walletCredit?: number;
+  systemFee?: number;
+  paymongoFee?: number;
 }
 
 export async function createCheckoutSession(params: CreateCheckoutSessionParams) {
+  const lineItems = params.walletCredit !== undefined && params.systemFee !== undefined && params.paymongoFee !== undefined
+    ? [
+        {
+          currency: "PHP",
+          amount: Math.round(params.walletCredit * 100),
+          name: "Wallet Funding",
+          description: `Credit to wallet - ${params.externalId}`,
+          quantity: 1,
+        },
+        ...(params.systemFee > 0 ? [{
+          currency: "PHP",
+          amount: Math.round(params.systemFee * 100),
+          name: "Service Fee",
+          description: "CashIn Tap service fee",
+          quantity: 1,
+        }] : []),
+        ...(params.paymongoFee > 0 ? [{
+          currency: "PHP",
+          amount: Math.round(params.paymongoFee * 100),
+          name: "Payment Processing Fee",
+          description: "PayMongo processing fee (1.5%)",
+          quantity: 1,
+        }] : []),
+      ]
+    : [{
+        currency: "PHP",
+        amount: Math.round(params.amount * 100),
+        description: params.description,
+        name: "Wallet Funding",
+        quantity: 1,
+      }];
+
   try {
     const { data } = await getClient().post("/checkout_sessions", {
       data: {
         attributes: {
           billing: { name: "CashIn Tap Customer" },
-          line_items: [{
-            currency: "PHP",
-            amount: Math.round(params.amount * 100),
-            description: params.description,
-            name: "Wallet Funding",
-            quantity: 1,
-          }],
+          line_items: lineItems,
           payment_method_types: ["card", "gcash", "grab_pay", "paymaya", "dob", "dob_ubp", "billease", "qrph"],
           success_url: params.successUrl,
           cancel_url: params.cancelUrl,

@@ -9,10 +9,21 @@ import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/securit
 import { calculateFee } from "@/services/fees/fee.service";
 import { createCheckoutSession } from "@/providers/paymongo/paymongo.provider";
 
+// PayMongo QR Ph / card rate: 1.5008% (1.5% + 0.0008% rounding buffer)
+// Formula: totalCentavos = ceil(((amount + systemFee) / (1 - 0.015008)) * 100)
+// This ensures PayMongo receives enough to cover their fee and we still credit `amount` to wallet.
+const PM_RATE = 0.015008;
+
+function calcPaymongoFee(walletCredit: number, systemFee: number): { paymongoFee: number; totalCharge: number } {
+  const totalCentavos = Math.ceil(((walletCredit + systemFee) / (1 - PM_RATE)) * 100);
+  const totalCharge = totalCentavos / 100;
+  const paymongoFee = Math.round((totalCharge - walletCredit - systemFee) * 100) / 100;
+  return { paymongoFee, totalCharge };
+}
+
 const schema = z.object({
   amount: z.number().min(100).max(50000),
   paymentMethod: z.string().optional(),
-  // Mobile deep-link URLs for redirect after payment
   successUrl: z.string().url().optional(),
   failureUrl: z.string().url().optional(),
 });
@@ -27,8 +38,12 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   if (wallet.status !== "ACTIVE") return fail("Your wallet is not active", 403);
 
   const { amount, paymentMethod, successUrl, failureUrl } = parsed.data;
-  const fee = await calculateFee(FeeService.WALLET_FUND, amount);
-  const totalAmount = amount + fee;
+
+  // Server-side fee calculation — never trust client-sent fees
+  const systemFee = await calculateFee(FeeService.WALLET_FUND, amount);
+  const { paymongoFee, totalCharge } = calcPaymongoFee(amount, systemFee);
+  const totalFee = systemFee + paymongoFee;
+
   const txnNumber = generateTransactionNumber("WALLET_FUND");
 
   const transaction = await prisma.$transaction(async (tx: any) => {
@@ -38,11 +53,12 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
         userId: payload.userId,
         type: TransactionType.WALLET_FUND,
         status: TransactionStatus.PENDING,
-        grossAmount: amount,
-        feeAmount: fee,
-        netAmount: totalAmount,
+        grossAmount: amount,        // credited to wallet on success
+        feeAmount: totalFee,        // systemFee + paymongoFee
+        netAmount: totalCharge,     // what PayMongo actually charges
         provider: Provider.PAYMONGO,
         idempotencyKey: generateIdempotencyKey(),
+        metadata: { systemFee, paymongoFee },
       },
     });
     await tx.fundingTransaction.create({ data: { transactionId: txn.id, paymentMethod: paymentMethod || "" } });
@@ -54,10 +70,12 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   try {
     session = await createCheckoutSession({
       externalId: txnNumber,
-      amount: totalAmount,
-      description: fee > 0
-        ? `CashIn Tap Wallet Funding - ${txnNumber} (Load: ₱${amount.toFixed(2)} + Fee: ₱${fee.toFixed(2)})`
-        : `CashIn Tap Wallet Funding - ${txnNumber}`,
+      amount: totalCharge,
+      description: `CashIn Tap Wallet Funding - ${txnNumber}`,
+      // Pass fee breakdown so PayMongo shows it as a separate line item
+      systemFee,
+      paymongoFee,
+      walletCredit: amount,
       successUrl: successUrl ?? `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}`,
       cancelUrl: failureUrl ?? `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}&failed=1`,
     });
@@ -72,5 +90,13 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     data: { paymongoLinkId: session.id, checkoutUrl, paymentMethod: paymentMethod || "" },
   });
 
-  return ok({ checkoutUrl, transactionNumber: txnNumber, amount, fee, total: totalAmount });
+  return ok({
+    checkoutUrl,
+    transactionNumber: txnNumber,
+    amount,           // wallet credit
+    systemFee,
+    paymongoFee,
+    totalFee,
+    totalCharge,      // what PayMongo charges
+  });
 });

@@ -49,6 +49,56 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // ── payment_intent.succeeded (Payment Intents / native QR Ph flow) ──
+  if (eventType === "payment_intent.succeeded") {
+    const intentData = payload?.data?.attributes?.data;
+    const intentId: string = intentData?.id || payload?.data?.id || "";
+    const paymentId: string = intentData?.attributes?.payments?.[0]?.id || "";
+
+    const funding = await prisma.fundingTransaction.findFirst({ where: { paymongoLinkId: intentId } });
+    if (!funding) return NextResponse.json({ ok: true });
+
+    const txn = await prisma.transaction.findUnique({
+      where: { id: funding.transactionId },
+      include: { fundingTxn: true },
+    });
+    if (!txn || txn.status === TransactionStatus.SUCCESS) return NextResponse.json({ ok: true });
+
+    const alreadyDone = await prisma.providerWebhook.findFirst({
+      where: { reference: intentId, processed: true, eventType: "payment_intent.succeeded" },
+    });
+    if (alreadyDone) return NextResponse.json({ ok: true });
+
+    await prisma.providerWebhook.create({
+      data: { provider: "PAYMONGO", eventType, payload, reference: intentId },
+    });
+
+    const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: txn.userId } });
+
+    const updated = await prisma.transaction.updateMany({
+      where: { id: txn.id, status: TransactionStatus.PENDING },
+      data: { status: TransactionStatus.SUCCESS, completedAt: new Date(), providerReference: paymentId || intentId },
+    });
+
+    if (updated.count > 0) {
+      await prisma.fundingTransaction.update({
+        where: { transactionId: txn.id },
+        data: { paymongoPaymentId: paymentId || intentId, paidAt: new Date() },
+      });
+      await creditWallet(wallet.id, Number(txn.grossAmount), "Wallet Funding via QR Ph", txn.id, txn.transactionNumber);
+      const feeAmt = Number(txn.feeAmount);
+      await prisma.notification.create({
+        data: {
+          userId: txn.userId,
+          title: "Wallet Funded",
+          message: `\u20b1${Number(txn.grossAmount).toLocaleString("en-PH", { minimumFractionDigits: 2 })} has been added to your wallet.${feeAmt > 0 ? ` (Fee: \u20b1${feeAmt.toLocaleString("en-PH", { minimumFractionDigits: 2 })})` : ""}`,
+          type: "WALLET_FUND",
+        },
+      });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   // ── QR Ph: source became chargeable — we must POST /payments to capture it ──
   if (eventType === "source.chargeable") {
     const sourceData = payload?.data?.attributes?.data;
