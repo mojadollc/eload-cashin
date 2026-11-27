@@ -51,7 +51,7 @@ function PinInput({ value, onChange, length = 4 }: { value: string; onChange: (v
           onPaste={handlePaste}
           className={`${
             length === 6 ? "w-11 h-11 text-xl" : "w-14 h-14 text-2xl"
-          } text-center font-bold border-2 rounded-xl border-gray-200 focus:border-[#038E80] focus:ring-2 focus:ring-[#038E80]/20 focus:outline-none transition-all`}
+          } text-center font-bold border-2 rounded-xl border-slate-200 focus:border-[#038E80] focus:ring-2 focus:ring-[#038E80]/15 focus:outline-none transition-all bg-slate-50 focus:bg-white`}
         />
       ))}
     </div>
@@ -194,13 +194,17 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "linear-gradient(135deg, #f0f9f8 0%, #f8fafc 50%, #eff6ff 100%)" }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/">
-            <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-20 h-20 mx-auto mb-3" />
+            <div className="w-20 h-20 rounded-3xl mx-auto mb-4 flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #038E80, #0ea5e9)", boxShadow: "0 12px 32px -6px rgba(3,142,128,0.4)" }}>
+              <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-12 h-12" />
+            </div>
           </Link>
-          <p className="text-gray-500 mt-1">{subtitles[step]}</p>
+          <h1 className="text-[20px] font-bold text-slate-900">CashIn Tap</h1>
+          <p className="text-slate-400 text-[13px] mt-1">{subtitles[step]}</p>
         </div>
 
         {searchParams.get("verified") === "1" && (

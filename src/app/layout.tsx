@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/shared/auth-context";
 import SwRegister from "@/components/shared/sw-register";
 import { LocationTracker } from "@/components/shared/location-tracker";
-
-const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "CashIn Tap",
@@ -28,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className={`${geist.className} bg-[#F7F9FA] text-[#17202A]`}>
+      <body className="bg-slate-50 text-slate-900">
         <AuthProvider>
           <LocationTracker />
           {children}

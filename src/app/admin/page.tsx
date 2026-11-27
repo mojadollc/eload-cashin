@@ -138,17 +138,20 @@ export default function AdminDashboard() {
   const chartData: any[] = stats?.chartData ?? [];
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-6 lg:p-8 space-y-6 page-enter">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-gray-500 text-sm">Good day, Admin</p>
+          <h1 className="text-[22px] font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-400 text-[13px] mt-0.5">Welcome back, Admin</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 bg-white border border-slate-200 rounded-xl p-1" style={{ boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.05)" }}>
           {RANGES.map(r => (
             <button key={r} onClick={() => setRange(r)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${range === r ? "bg-[#038E80] text-white" : "bg-white text-gray-600 border"}`}>
+              className={`px-3.5 py-1.5 rounded-lg text-[12px] font-semibold capitalize transition-all ${
+                range === r ? "text-white" : "text-slate-500 hover:text-slate-700"
+              }`}
+              style={range === r ? { background: "linear-gradient(135deg, #038E80, #0a9e8f)" } : {}}>
               {r}
             </button>
           ))}
@@ -163,10 +166,10 @@ export default function AdminDashboard() {
             <Card key={label}>
               <CardContent className="pt-4 pb-4">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${color}`}>
-                  <Icon size={18} />
+                  <Icon size={17} />
                 </div>
-                <p className="text-2xl font-bold">{value ?? "—"}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                <p className="text-[22px] font-bold text-slate-900">{value ?? "—"}</p>
+                <p className="text-[12px] text-slate-400 mt-0.5 font-medium">{label}</p>
               </CardContent>
             </Card>
           ))
@@ -279,8 +282,8 @@ export default function AdminDashboard() {
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Recent Transactions</h2>
-            <span className="text-xs text-gray-400">{txnTotal.toLocaleString()} total</span>
+            <h2 className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">Recent Transactions</h2>
+            <span className="text-[12px] text-slate-400 font-medium">{txnTotal.toLocaleString()} total</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

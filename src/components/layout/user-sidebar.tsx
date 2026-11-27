@@ -31,45 +31,58 @@ const mobileItems = [
 export function UserSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const initials = `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`.toUpperCase();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-100 h-screen sticky top-0 shrink-0">
-      <div className="px-6 py-5 border-b border-gray-100">
+    <aside className="hidden lg:flex flex-col w-[220px] shrink-0 h-screen sticky top-0 bg-white border-r border-slate-100">
+      {/* Logo */}
+      <div className="px-5 py-5 border-b border-slate-100">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#038E80] flex items-center justify-center">
-            <Wallet size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "linear-gradient(135deg, #038E80, #0ea5e9)" }}>
+            <Wallet size={15} className="text-white" />
           </div>
-          <span className="text-lg font-bold text-gray-900">CashIn <span className="text-[#038E80]">Tap</span></span>
+          <span className="text-[15px] font-bold text-slate-900 tracking-tight">
+            CashIn <span style={{ color: "#038E80" }}>Tap</span>
+          </span>
         </Link>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto no-scrollbar space-y-0.5">
         {navItems.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link key={href} href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
-                active ? "bg-[#038E80] text-white shadow-sm shadow-[#038E80]/30" : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-              )}>
-              <Icon size={17} strokeWidth={active ? 2.5 : 2} />
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+                active
+                  ? "text-white shadow-sm"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+              )}
+              style={active ? { background: "linear-gradient(135deg, #038E80, #0a9e8f)", boxShadow: "0 4px 12px -2px rgba(3,142,128,0.3)" } : {}}>
+              <Icon size={16} strokeWidth={active ? 2.5 : 2} className="shrink-0" />
               {label}
             </Link>
           );
         })}
       </nav>
-      <div className="px-3 py-4 border-t border-gray-100">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
-          <div className="w-8 h-8 rounded-full bg-[#038E80]/10 flex items-center justify-center text-[#038E80] text-xs font-bold shrink-0">
-            {user?.firstName?.[0]}{user?.lastName?.[0]}
+
+      {/* User */}
+      <div className="px-3 py-4 border-t border-slate-100">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 mb-2">
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
+            style={{ background: "linear-gradient(135deg, #038E80, #0ea5e9)" }}>
+            {initials || <UserCircle2 size={16} />}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">{user?.firstName} {user?.lastName}</p>
-            <p className="text-xs text-gray-400 truncate">{user?.mobile}</p>
+            <p className="text-[13px] font-semibold text-slate-800 truncate">{user?.firstName} {user?.lastName}</p>
+            <p className="text-[11px] text-slate-400 truncate">{user?.mobile}</p>
           </div>
         </div>
         <button onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full transition-all">
-          <LogOut size={17} /> Sign Out
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-red-500 hover:bg-red-50 w-full transition-all">
+          <LogOut size={15} /> Sign Out
         </button>
       </div>
     </aside>
@@ -81,39 +94,24 @@ export function MobileNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
-      <div className="flex items-stretch">
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-slate-100"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="flex items-stretch px-2">
         {mobileItems.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
-            <Link
-              key={href}
-              href={href}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 relative min-w-0"
-            >
-              {active && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-[#038E80]" />
-              )}
+            <Link key={href} href={href}
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 relative min-w-0">
               <div className={cn(
-                "flex items-center justify-center rounded-xl transition-all",
-                "w-9 h-9 sm:w-10 sm:h-10",
-                active ? "bg-[#038E80]/10" : ""
-              )}>
-                <Icon
-                  className={cn(
-                    "transition-all",
-                    active ? "text-[#038E80]" : "text-gray-400"
-                  )}
-                  size={20}
-                  strokeWidth={active ? 2.5 : 1.8}
-                />
+                "flex items-center justify-center w-10 h-10 rounded-2xl transition-all duration-200",
+                active ? "text-white shadow-sm" : "text-slate-400"
+              )}
+                style={active ? { background: "linear-gradient(135deg, #038E80, #0a9e8f)", boxShadow: "0 4px 10px -2px rgba(3,142,128,0.35)" } : {}}>
+                <Icon size={19} strokeWidth={active ? 2.5 : 1.8} />
               </div>
               <span className={cn(
-                "font-semibold leading-none truncate w-full text-center px-0.5",
-                "text-[9px] sm:text-[10px] md:text-[11px]",
-                active ? "text-[#038E80]" : "text-gray-400"
+                "text-[10px] font-semibold leading-none",
+                active ? "text-[#038E80]" : "text-slate-400"
               )}>
                 {label}
               </span>

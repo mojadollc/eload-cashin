@@ -1,20 +1,22 @@
 import { cn } from "@/lib/utils";
 
-const statusColors: Record<string, string> = {
-  SUCCESS: "bg-green-100 text-green-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
-  PROCESSING: "bg-blue-100 text-blue-700",
-  FAILED: "bg-red-100 text-red-700",
-  REVERSED: "bg-orange-100 text-orange-700",
-  REFUNDED: "bg-purple-100 text-purple-700",
-  ACTIVE: "bg-green-100 text-green-700",
-  SUSPENDED: "bg-red-100 text-red-700",
-  RESTRICTED: "bg-orange-100 text-orange-700",
+const statusConfig: Record<string, { dot: string; bg: string; text: string }> = {
+  SUCCESS:    { dot: "bg-emerald-500", bg: "bg-emerald-50",  text: "text-emerald-700" },
+  PENDING:    { dot: "bg-amber-400",   bg: "bg-amber-50",    text: "text-amber-700" },
+  PROCESSING: { dot: "bg-blue-500",    bg: "bg-blue-50",     text: "text-blue-700" },
+  FAILED:     { dot: "bg-red-500",     bg: "bg-red-50",      text: "text-red-700" },
+  REVERSED:   { dot: "bg-orange-500",  bg: "bg-orange-50",   text: "text-orange-700" },
+  REFUNDED:   { dot: "bg-purple-500",  bg: "bg-purple-50",   text: "text-purple-700" },
+  ACTIVE:     { dot: "bg-emerald-500", bg: "bg-emerald-50",  text: "text-emerald-700" },
+  SUSPENDED:  { dot: "bg-red-500",     bg: "bg-red-50",      text: "text-red-700" },
+  RESTRICTED: { dot: "bg-orange-500",  bg: "bg-orange-50",   text: "text-orange-700" },
 };
 
 export function Badge({ status, className }: { status: string; className?: string }) {
+  const cfg = statusConfig[status] || { dot: "bg-slate-400", bg: "bg-slate-100", text: "text-slate-600" };
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", statusColors[status] || "bg-gray-100 text-gray-700", className)}>
+    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold", cfg.bg, cfg.text, className)}>
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dot)} />
       {status}
     </span>
   );
