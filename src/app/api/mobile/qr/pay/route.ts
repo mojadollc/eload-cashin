@@ -37,7 +37,11 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
     .createHmac("sha256", process.env.JWT_SECRET!)
     .update(JSON.stringify(qrData))
     .digest("hex");
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+  const sigBuf = Buffer.from(signature, "hex");
+  const expBuf = Buffer.from(expected, "hex");
+  const sigValid = sigBuf.length === expBuf.length &&
+    crypto.timingSafeEqual(sigBuf, expBuf);
+  if (!sigValid) {
     return fail("Invalid or tampered QR code", 400, "QR_INVALID");
   }
 
