@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { COLORS, SPACING } from "@/utils/theme";
+import { COLORS, SPACING, RADIUS } from "@/utils/theme";
 
 interface HeaderProps {
   title: string;
@@ -26,15 +26,19 @@ export default function Header({ title, showBack = true, rightAction, transparen
       <View style={styles.row}>
         {showBack ? (
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-            <Ionicons name="chevron-back" size={24} color={transparent ? COLORS.white : COLORS.text} />
+            <View style={styles.backBtnInner}>
+              <Ionicons name="chevron-back" size={20} color={COLORS.text} />
+            </View>
           </TouchableOpacity>
         ) : (
           <View style={styles.iconBtn} />
         )}
-        <Text style={[styles.title, transparent && styles.titleWhite]}>{title}</Text>
+        <Text style={styles.title}>{title}</Text>
         {rightAction ? (
           <TouchableOpacity onPress={rightAction.onPress} style={styles.iconBtn}>
-            <Ionicons name={rightAction.icon} size={22} color={transparent ? COLORS.white : COLORS.text} />
+            <View style={styles.backBtnInner}>
+              <Ionicons name={rightAction.icon} size={20} color={COLORS.text} />
+            </View>
           </TouchableOpacity>
         ) : (
           <View style={styles.iconBtn} />
@@ -46,14 +50,23 @@ export default function Header({ title, showBack = true, rightAction, transparen
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     paddingBottom: SPACING.sm,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   transparent: { backgroundColor: "transparent", borderBottomWidth: 0 },
   row: { flexDirection: "row", alignItems: "center", paddingHorizontal: SPACING.sm },
-  iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  iconBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  backBtnInner: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
   title: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: COLORS.text },
-  titleWhite: { color: COLORS.white },
 });

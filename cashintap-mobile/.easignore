@@ -1,0 +1,12 @@
+node_modules
+.expo
+android
+ios
+.git
+*.log
+../.agents
+../.claude
+../.windsurf
+../native mobile app
+../.next
+../prisma

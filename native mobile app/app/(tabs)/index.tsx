@@ -19,10 +19,10 @@ import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
 import { formatCurrency } from "@/utils/helpers";
 
 const QUICK_ACTIONS = [
-  { label: "Fund", icon: "add-circle", color: "#0066FF", route: "/wallet/fund" },
-  { label: "Transfer", icon: "swap-horizontal", color: "#00C896", route: "/transfer" },
-  { label: "E-Load", icon: "phone-portrait", color: "#FF9500", route: "/eload" },
-  { label: "Cash Out", icon: "arrow-up-circle", color: "#FF3B30", route: "/cashout" },
+  { label: "Fund", icon: "add-circle", color: COLORS.primary, bg: COLORS.primaryLight, route: "/wallet/fund" },
+  { label: "Transfer", icon: "swap-horizontal", color: COLORS.accent, bg: COLORS.accentLight, route: "/transfer" },
+  { label: "E-Load", icon: "phone-portrait", color: COLORS.warning, bg: "rgba(255,181,71,0.15)", route: "/eload" },
+  { label: "Cash Out", icon: "arrow-up-circle", color: COLORS.danger, bg: "rgba(255,92,122,0.15)", route: "/cashout" },
 ];
 
 export default function HomeScreen() {
@@ -44,40 +44,51 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: SPACING.xl }}
+      contentContainerStyle={{ paddingBottom: 100 }}
       refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={COLORS.primary} />}
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
         <View>
-          <Text style={styles.greeting}>Good day,</Text>
-          <Text style={styles.name}>{user?.firstName} {user?.lastName} 👋</Text>
+          <Text style={styles.greeting}>Good day 👋</Text>
+          <Text style={styles.name}>{user?.firstName} {user?.lastName}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push("/wallet/qr")} style={styles.qrBtn}>
-          <Ionicons name="qr-code" size={24} color={COLORS.white} />
+          <Ionicons name="qr-code-outline" size={22} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
       {/* Wallet Card */}
-      <View style={styles.walletCard}>
-        <Text style={styles.walletLabel}>Available Balance</Text>
-        {walletLoading ? (
-          <ActivityIndicator color={COLORS.white} size="large" style={{ marginVertical: SPACING.md }} />
-        ) : (
-          <Text style={styles.balance}>{formatCurrency(wallet?.availableBalance || "0")}</Text>
-        )}
-        <View style={styles.walletRow}>
-          <View>
-            <Text style={styles.walletSubLabel}>Account No.</Text>
-            <Text style={styles.walletSubValue}>{wallet?.accountNumber || "—"}</Text>
+      <View style={styles.cardWrap}>
+        <View style={styles.walletCard}>
+          {/* Decorative circles */}
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
+
+          <Text style={styles.walletLabel}>Available Balance</Text>
+          {walletLoading ? (
+            <ActivityIndicator color={COLORS.white} size="large" style={{ marginVertical: SPACING.md }} />
+          ) : (
+            <Text style={styles.balance}>{formatCurrency(wallet?.availableBalance || "0")}</Text>
+          )}
+
+          <View style={styles.walletDivider} />
+
+          <View style={styles.walletRow}>
+            <View>
+              <Text style={styles.walletSubLabel}>Account No.</Text>
+              <Text style={styles.walletSubValue}>{wallet?.accountNumber || "—"}</Text>
+            </View>
+            <View style={[styles.statusBadge, wallet?.status === "ACTIVE" ? styles.statusActive : styles.statusInactive]}>
+              <View style={[styles.statusDot, { backgroundColor: wallet?.status === "ACTIVE" ? COLORS.accent : COLORS.danger }]} />
+              <Text style={styles.statusText}>{wallet?.status || "—"}</Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, wallet?.status === "ACTIVE" ? styles.statusActive : styles.statusInactive]}>
-            <Text style={styles.statusText}>{wallet?.status || "—"}</Text>
-          </View>
+
+          {wallet?.pendingBalance && parseFloat(wallet.pendingBalance) > 0 ? (
+            <Text style={styles.pendingText}>⏳ Pending: {formatCurrency(wallet.pendingBalance)}</Text>
+          ) : null}
         </View>
-        {wallet?.pendingBalance && parseFloat(wallet.pendingBalance) > 0 ? (
-          <Text style={styles.pendingText}>Pending: {formatCurrency(wallet.pendingBalance)}</Text>
-        ) : null}
       </View>
 
       {/* Quick Actions */}
@@ -91,7 +102,7 @@ export default function HomeScreen() {
               onPress={() => router.push(action.route as any)}
               activeOpacity={0.7}
             >
-              <View style={[styles.actionIcon, { backgroundColor: action.color + "15" }]}>
+              <View style={[styles.actionIcon, { backgroundColor: action.bg }]}>
                 <Ionicons name={action.icon as any} size={26} color={action.color} />
               </View>
               <Text style={styles.actionLabel}>{action.label}</Text>
@@ -103,9 +114,9 @@ export default function HomeScreen() {
       {/* Recent Transactions */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/transactions")}>
-            <Text style={styles.seeAll}>See All</Text>
+            <Text style={styles.seeAll}>See All →</Text>
           </TouchableOpacity>
         </View>
         {txLoading ? (
@@ -120,7 +131,9 @@ export default function HomeScreen() {
           ))
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="receipt-outline" size={32} color={COLORS.textMuted} />
+            </View>
             <Text style={styles.emptyText}>No transactions yet</Text>
           </View>
         )}
@@ -136,37 +149,67 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.md,
-    backgroundColor: COLORS.primary,
+    paddingBottom: SPACING.lg,
   },
-  greeting: { fontSize: 13, color: "rgba(255,255,255,0.8)" },
-  name: { fontSize: 18, fontWeight: "800", color: COLORS.white },
+  greeting: { fontSize: 13, color: COLORS.textSecondary },
+  name: { fontSize: 20, fontWeight: "800", color: COLORS.text, marginTop: 2 },
   qrBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surfaceElevated,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
+  cardWrap: { paddingHorizontal: SPACING.lg, marginBottom: SPACING.lg },
   walletCard: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.xl,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderRadius: RADIUS.xxl,
+    padding: SPACING.lg,
+    overflow: "hidden",
+    ...SHADOW.glow,
   },
-  walletLabel: { fontSize: 13, color: "rgba(255,255,255,0.75)", marginBottom: 4 },
-  balance: { fontSize: 38, fontWeight: "800", color: COLORS.white, marginBottom: SPACING.md },
+  circle1: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -60,
+    right: -40,
+  },
+  circle2: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: -30,
+    left: 20,
+  },
+  walletLabel: { fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 6 },
+  balance: { fontSize: 40, fontWeight: "800", color: COLORS.white, letterSpacing: -1 },
+  walletDivider: { height: 1, backgroundColor: "rgba(255,255,255,0.15)", marginVertical: SPACING.md },
   walletRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  walletSubLabel: { fontSize: 11, color: "rgba(255,255,255,0.7)" },
-  walletSubValue: { fontSize: 14, fontWeight: "700", color: COLORS.white },
-  statusBadge: { borderRadius: RADIUS.full, paddingHorizontal: 12, paddingVertical: 4 },
-  statusActive: { backgroundColor: "rgba(52,199,89,0.25)" },
-  statusInactive: { backgroundColor: "rgba(255,59,48,0.25)" },
+  walletSubLabel: { fontSize: 11, color: "rgba(255,255,255,0.6)" },
+  walletSubValue: { fontSize: 14, fontWeight: "700", color: COLORS.white, marginTop: 2 },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  statusActive: { backgroundColor: "rgba(0,229,160,0.2)" },
+  statusInactive: { backgroundColor: "rgba(255,92,122,0.2)" },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
-  pendingText: { fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: SPACING.sm },
-  section: { paddingHorizontal: SPACING.lg, marginTop: SPACING.lg },
+  pendingText: { fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: SPACING.sm },
+  section: { paddingHorizontal: SPACING.lg, marginBottom: SPACING.lg },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.md },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.md },
   seeAll: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
@@ -175,14 +218,23 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 60,
     height: 60,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.xs,
-    ...SHADOW.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  actionLabel: { fontSize: 12, fontWeight: "600", color: COLORS.text },
+  actionLabel: { fontSize: 12, fontWeight: "600", color: COLORS.textSecondary },
   emptyState: { alignItems: "center", paddingVertical: SPACING.xl },
-  emptyIcon: { fontSize: 40, marginBottom: SPACING.sm },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.md,
+  },
   emptyText: { fontSize: 14, color: COLORS.textMuted },
 });

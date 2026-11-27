@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
 
   const { mobile, firebaseToken, newPin } = parsed.data;
 
+  const user = await prisma.user.findUnique({ where: { mobile } });
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
   // Verify Firebase token
   const { getAdminAuth } = await import("@/lib/firebase/admin");
   let decoded;
@@ -60,14 +63,10 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
   }
-
   const normalizedMobile = "+63" + mobile.slice(1);
   if (decoded.phone_number !== normalizedMobile) {
     return NextResponse.json({ error: "Phone number mismatch" }, { status: 400 });
   }
-
-  const user = await prisma.user.findUnique({ where: { mobile } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const bcrypt = await import("bcryptjs");
   const pinHash = await bcrypt.hash(newPin, 10);

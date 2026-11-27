@@ -19,6 +19,30 @@ import { profileApi, authApi } from "@/api/endpoints";
 import { useAuthStore } from "@/store/authStore";
 import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
 
+const MENU_SECTIONS = [
+  {
+    title: "Account",
+    items: [
+      { icon: "person-outline", label: "Edit Profile", route: "/profile/edit", color: COLORS.primary },
+      { icon: "keypad-outline", label: "Set / Change MPIN", route: "/(auth)/set-mpin", color: COLORS.accent },
+      { icon: "lock-closed-outline", label: "Forgot MPIN", route: "/(auth)/forgot-mpin", color: COLORS.warning },
+    ],
+  },
+  {
+    title: "Finance",
+    items: [
+      { icon: "card-outline", label: "Cashout Destinations", route: "/cashout/destinations", color: COLORS.info },
+      { icon: "shield-checkmark-outline", label: "KYC Verification", route: "/profile/kyc", color: COLORS.success },
+    ],
+  },
+  {
+    title: "Support",
+    items: [
+      { icon: "help-circle-outline", label: "Help & Support", route: "/profile/support", color: COLORS.textSecondary },
+    ],
+  },
+];
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, clearAuth } = useAuthStore();
@@ -47,15 +71,9 @@ export default function ProfileScreen() {
   const toggleBiometric = async (val: boolean) => {
     if (val) {
       const compatible = await LocalAuthentication.hasHardwareAsync();
-      if (!compatible) {
-        Toast.show({ type: "error", text1: "Biometrics not supported on this device" });
-        return;
-      }
+      if (!compatible) { Toast.show({ type: "error", text1: "Biometrics not supported" }); return; }
       const enrolled = await LocalAuthentication.isEnrolledAsync();
-      if (!enrolled) {
-        Toast.show({ type: "error", text1: "No biometrics enrolled. Set up in device settings." });
-        return;
-      }
+      if (!enrolled) { Toast.show({ type: "error", text1: "No biometrics enrolled" }); return; }
       const result = await LocalAuthentication.authenticateAsync({ promptMessage: "Authenticate to enable biometrics" });
       if (result.success) {
         await SecureStore.setItemAsync("biometric_user_id", user?.id || "");
@@ -72,26 +90,25 @@ export default function ProfileScreen() {
   const displayUser = profile || user;
   const initials = `${displayUser?.firstName?.[0] || ""}${displayUser?.lastName?.[0] || ""}`.toUpperCase();
 
-  const menuItems = [
-    { icon: "person-outline", label: "Edit Profile", onPress: () => router.push("/profile/edit") },
-    { icon: "keypad-outline", label: "Set / Change MPIN", onPress: () => router.push("/(auth)/set-mpin") },
-    { icon: "lock-closed-outline", label: "Forgot MPIN", onPress: () => router.push("/(auth)/forgot-mpin") },
-    { icon: "card-outline", label: "Cashout Destinations", onPress: () => router.push("/cashout/destinations") },
-    { icon: "shield-checkmark-outline", label: "KYC Verification", onPress: () => router.push("/profile/kyc") },
-    { icon: "help-circle-outline", label: "Support", onPress: () => router.push("/profile/support") },
-  ];
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: SPACING.xxl }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 100 }}
+    >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.lg }]}>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.avatarBadge}>
+            <Ionicons name="checkmark" size={10} color={COLORS.white} />
+          </View>
         </View>
         <Text style={styles.name}>{displayUser?.firstName} {displayUser?.lastName}</Text>
         <Text style={styles.mobile}>{displayUser?.mobile}</Text>
         <View style={styles.badges}>
-          <View style={[styles.badge, styles.roleBadge]}>
+          <View style={styles.badge}>
             <Text style={styles.badgeText}>{displayUser?.role}</Text>
           </View>
           <View style={[styles.badge, styles.kycBadge]}>
@@ -101,38 +118,51 @@ export default function ProfileScreen() {
       </View>
 
       {/* Biometric Toggle */}
-      <View style={styles.section}>
-        <View style={styles.biometricRow}>
-          <View style={styles.biometricLeft}>
-            <Ionicons name="finger-print" size={22} color={COLORS.primary} />
-            <Text style={styles.biometricLabel}>Biometric Login</Text>
+      <View style={styles.biometricCard}>
+        <View style={styles.biometricLeft}>
+          <View style={[styles.menuIconWrap, { backgroundColor: "rgba(108,99,255,0.15)" }]}>
+            <Ionicons name="finger-print" size={20} color={COLORS.primary} />
           </View>
-          <Switch
-            value={biometricEnabled}
-            onValueChange={toggleBiometric}
-            trackColor={{ false: COLORS.border, true: COLORS.primary }}
-            thumbColor={COLORS.white}
-          />
+          <View>
+            <Text style={styles.biometricLabel}>Biometric Login</Text>
+            <Text style={styles.biometricSub}>Use Face ID or fingerprint</Text>
+          </View>
         </View>
+        <Switch
+          value={biometricEnabled}
+          onValueChange={toggleBiometric}
+          trackColor={{ false: COLORS.surfaceHighlight, true: COLORS.primary }}
+          thumbColor={COLORS.white}
+        />
       </View>
 
-      {/* Menu */}
-      <View style={styles.section}>
-        {menuItems.map((item, idx) => (
-          <TouchableOpacity key={idx} style={styles.menuItem} onPress={item.onPress} activeOpacity={0.7}>
-            <View style={styles.menuLeft}>
-              <View style={styles.menuIconWrap}>
-                <Ionicons name={item.icon as any} size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Menu Sections */}
+      {MENU_SECTIONS.map((section) => (
+        <View key={section.title} style={styles.menuSection}>
+          <Text style={styles.menuSectionTitle}>{section.title}</Text>
+          <View style={styles.menuCard}>
+            {section.items.map((item, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={[styles.menuItem, idx > 0 && styles.menuItemBorder]}
+                onPress={() => router.push(item.route as any)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuLeft}>
+                  <View style={[styles.menuIconWrap, { backgroundColor: item.color + "20" }]}>
+                    <Ionicons name={item.icon as any} size={18} color={item.color} />
+                  </View>
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ))}
 
       {/* Logout */}
-      <View style={[styles.section, { marginTop: 0 }]}>
+      <View style={styles.menuSection}>
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
           <Text style={styles.logoutText}>Sign Out</Text>
@@ -147,60 +177,82 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     paddingBottom: SPACING.xl,
     paddingHorizontal: SPACING.lg,
   },
+  avatarWrap: { position: "relative", marginBottom: SPACING.md },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.sm,
     borderWidth: 3,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderColor: COLORS.primaryLight,
   },
-  avatarText: { fontSize: 28, fontWeight: "800", color: COLORS.white },
-  name: { fontSize: 20, fontWeight: "800", color: COLORS.white },
-  mobile: { fontSize: 14, color: "rgba(255,255,255,0.8)", marginTop: 2 },
+  avatarText: { fontSize: 30, fontWeight: "800", color: COLORS.white },
+  avatarBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  name: { fontSize: 22, fontWeight: "800", color: COLORS.text },
+  mobile: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
   badges: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.sm },
-  badge: { borderRadius: RADIUS.full, paddingHorizontal: 12, paddingVertical: 4 },
-  roleBadge: { backgroundColor: "rgba(255,255,255,0.2)" },
-  kycBadge: { backgroundColor: "rgba(255,255,255,0.15)" },
-  badgeText: { fontSize: 11, fontWeight: "700", color: COLORS.white },
-  section: {
-    backgroundColor: COLORS.surface,
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    overflow: "hidden",
-    ...SHADOW.sm,
+  badge: {
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: COLORS.primaryLight,
   },
-  biometricRow: {
+  kycBadge: { backgroundColor: COLORS.accentLight },
+  badgeText: { fontSize: 11, fontWeight: "700", color: COLORS.text },
+  biometricCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.lg,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
   },
-  biometricLeft: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  biometricLeft: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   biometricLabel: { fontSize: 15, fontWeight: "600", color: COLORS.text },
+  biometricSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
+  menuSection: { paddingHorizontal: SPACING.lg, marginTop: SPACING.md },
+  menuSectionTitle: { fontSize: 12, fontWeight: "700", color: COLORS.textMuted, marginBottom: SPACING.sm, textTransform: "uppercase", letterSpacing: 1 },
+  menuCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: "hidden",
+  },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
+  menuItemBorder: { borderTopWidth: 1, borderTopColor: COLORS.border },
   menuLeft: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   menuIconWrap: {
     width: 36,
     height: 36,
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -211,6 +263,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: SPACING.sm,
     padding: SPACING.md,
+    backgroundColor: "rgba(255,92,122,0.1)",
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255,92,122,0.2)",
   },
   logoutText: { fontSize: 15, fontWeight: "700", color: COLORS.danger },
   version: { textAlign: "center", fontSize: 12, color: COLORS.textMuted, marginTop: SPACING.lg },

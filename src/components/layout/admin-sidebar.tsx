@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/shared/auth-context";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Users, Wallet, Smartphone, ArrowDownCircle,
   List, DollarSign, BarChart2, Settings, FileText, LogOut,
@@ -53,6 +54,15 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const initials = `${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`.toUpperCase();
+  const [logoUrl, setLogoUrl] = useState("");
+  const [appName, setAppName] = useState("CashIn Tap");
+
+  useEffect(() => {
+    fetch("/api/branding").then(r => r.json()).then(d => {
+      if (d.logoUrl) setLogoUrl(d.logoUrl);
+      if (d.appName) setAppName(d.appName);
+    }).catch(() => {});
+  }, []);
 
   return (
     <aside className="flex flex-col w-[240px] shrink-0 h-screen sticky top-0 overflow-hidden"
@@ -61,12 +71,14 @@ export function AdminSidebar() {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/[0.06]">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, #038E80, #0ea5e9)" }}>
-            <Shield size={17} className="text-white" />
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+            style={{ background: "linear-gradient(135deg, var(--brand), var(--secondary))" }}>
+            {logoUrl
+              ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
+              : <Shield size={17} className="text-white" />}
           </div>
           <div>
-            <span className="text-[15px] font-bold text-white tracking-tight">CashIn Tap</span>
+            <span className="text-[15px] font-bold text-white tracking-tight">{appName}</span>
             <p className="text-[10px] text-white/30 font-medium tracking-widest uppercase leading-none mt-0.5">Admin Console</p>
           </div>
         </Link>
@@ -90,11 +102,11 @@ export function AdminSidebar() {
                     )}>
                     {active && (
                       <span className="absolute inset-0 rounded-xl opacity-100"
-                        style={{ background: "linear-gradient(135deg, rgba(3,142,128,0.25), rgba(14,165,233,0.15))", border: "1px solid rgba(3,142,128,0.3)" }} />
+                        style={{ background: "linear-gradient(135deg, rgba(var(--brand-rgb),0.25), rgba(var(--brand-rgb),0.1))", border: "1px solid rgba(var(--brand-rgb),0.3)" }} />
                     )}
-                    <Icon size={15} className={cn("shrink-0 relative z-10", active ? "text-[#038E80]" : "")} strokeWidth={active ? 2.5 : 2} />
+                    <Icon size={15} className={cn("shrink-0 relative z-10")} style={active ? { color: "var(--brand)" } : {}} strokeWidth={active ? 2.5 : 2} />
                     <span className="relative z-10">{itemLabel}</span>
-                    {active && <ChevronRight size={12} className="ml-auto relative z-10 text-[#038E80]/60" />}
+                    {active && <ChevronRight size={12} className="ml-auto relative z-10" style={{ color: "var(--brand)" }} />}
                   </Link>
                 );
               })}
@@ -107,7 +119,7 @@ export function AdminSidebar() {
       <div className="px-3 py-4 border-t border-white/[0.06]">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
-            style={{ background: "linear-gradient(135deg, #038E80, #0ea5e9)" }}>
+            style={{ background: "linear-gradient(135deg, var(--brand), var(--secondary))" }}>
             {initials || "A"}
           </div>
           <div className="min-w-0 flex-1">

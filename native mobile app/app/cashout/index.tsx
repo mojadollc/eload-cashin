@@ -17,18 +17,18 @@ import { cashoutApi, walletApi } from "@/api/endpoints";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
-import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
+import { COLORS, SPACING, RADIUS } from "@/utils/theme";
 import { formatCurrency } from "@/utils/helpers";
 
 const CHANNELS = [
-  { id: "GCASH", label: "GCash", icon: "💙" },
-  { id: "MAYA", label: "Maya", icon: "💚" },
-  { id: "BDO", label: "BDO", icon: "🏦" },
-  { id: "BPI", label: "BPI", icon: "🏦" },
-  { id: "METROBANK", label: "Metrobank", icon: "🏦" },
-  { id: "UNIONBANK", label: "UnionBank", icon: "🏦" },
-  { id: "LANDBANK", label: "Landbank", icon: "🏦" },
-  { id: "PNB", label: "PNB", icon: "🏦" },
+  { id: "GCASH", label: "GCash", color: "#0066FF" },
+  { id: "MAYA", label: "Maya", color: "#00A651" },
+  { id: "BDO", label: "BDO", color: "#003087" },
+  { id: "BPI", label: "BPI", color: "#CC0000" },
+  { id: "METROBANK", label: "Metrobank", color: "#FFB800" },
+  { id: "UNIONBANK", label: "UnionBank", color: "#E87722" },
+  { id: "LANDBANK", label: "Landbank", color: "#006400" },
+  { id: "PNB", label: "PNB", color: "#003087" },
 ];
 
 export default function CashoutScreen() {
@@ -63,7 +63,6 @@ export default function CashoutScreen() {
     if (num > parseFloat(wallet?.availableBalance || "0")) {
       Toast.show({ type: "error", text1: "Insufficient balance" }); return;
     }
-
     Alert.alert(
       "Confirm Cash Out",
       `Send ${formatCurrency(num)} to ${accountName} (${channel} ${accountNumber})?`,
@@ -92,8 +91,10 @@ export default function CashoutScreen() {
       <Header title="Cash Out" />
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        {/* Balance */}
+        {/* Balance Card */}
         <View style={styles.balanceCard}>
+          <View style={styles.circle1} />
+          <View style={styles.circle2} />
           <Text style={styles.balanceLabel}>Available Balance</Text>
           <Text style={styles.balance}>{formatCurrency(wallet?.availableBalance || "0")}</Text>
         </View>
@@ -108,7 +109,11 @@ export default function CashoutScreen() {
                   <Text style={styles.destChannel}>{d.channel}</Text>
                   <Text style={styles.destName} numberOfLines={1}>{d.accountName}</Text>
                   <Text style={styles.destAccount}>{d.accountNumber}</Text>
-                  {d.isDefault && <View style={styles.defaultBadge}><Text style={styles.defaultText}>Default</Text></View>}
+                  {d.isDefault && (
+                    <View style={styles.defaultBadge}>
+                      <Text style={styles.defaultText}>Default</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -119,16 +124,19 @@ export default function CashoutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Select Channel</Text>
           <View style={styles.channelGrid}>
-            {CHANNELS.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                style={[styles.channelBtn, channel === c.id && styles.channelBtnActive]}
-                onPress={() => setChannel(c.id)}
-              >
-                <Text style={styles.channelIcon}>{c.icon}</Text>
-                <Text style={[styles.channelLabel, channel === c.id && styles.channelLabelActive]}>{c.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {CHANNELS.map((c) => {
+              const active = channel === c.id;
+              return (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.channelBtn, active && { borderColor: c.color, backgroundColor: c.color + "20" }]}
+                  onPress={() => setChannel(c.id)}
+                >
+                  <View style={[styles.channelDot, { backgroundColor: c.color }]} />
+                  <Text style={[styles.channelLabel, active && { color: c.color }]}>{c.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -182,24 +190,47 @@ const styles = StyleSheet.create({
   content: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
   balanceCard: {
     backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xxl,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
     alignItems: "center",
+    overflow: "hidden",
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 8,
   },
-  balanceLabel: { fontSize: 13, color: "rgba(255,255,255,0.8)" },
-  balance: { fontSize: 30, fontWeight: "800", color: COLORS.white, marginTop: 4 },
+  circle1: {
+    position: "absolute",
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -50,
+    right: -30,
+  },
+  circle2: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: -20,
+    left: 10,
+  },
+  balanceLabel: { fontSize: 13, color: "rgba(255,255,255,0.75)" },
+  balance: { fontSize: 34, fontWeight: "800", color: COLORS.white, marginTop: 4 },
   section: { marginBottom: SPACING.lg },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.sm },
+  sectionTitle: { fontSize: 13, fontWeight: "700", color: COLORS.textSecondary, marginBottom: SPACING.sm, textTransform: "uppercase", letterSpacing: 0.5 },
   destCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
     marginRight: SPACING.sm,
     minWidth: 130,
     borderWidth: 1,
     borderColor: COLORS.border,
-    ...SHADOW.sm,
   },
   destChannel: { fontSize: 11, fontWeight: "700", color: COLORS.primary },
   destName: { fontSize: 13, fontWeight: "600", color: COLORS.text, marginTop: 2 },
@@ -218,11 +249,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     gap: SPACING.xs,
   },
-  channelBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
-  channelIcon: { fontSize: 16 },
+  channelDot: { width: 8, height: 8, borderRadius: 4 },
   channelLabel: { fontSize: 13, fontWeight: "600", color: COLORS.textSecondary },
-  channelLabelActive: { color: COLORS.primary },
-  card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOW.sm, marginBottom: SPACING.lg },
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.lg,
+  },
   btn: { marginTop: SPACING.sm },
   manageLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: SPACING.xs, marginTop: SPACING.md },
   manageLinkText: { fontSize: 14, color: COLORS.primary, fontWeight: "600" },

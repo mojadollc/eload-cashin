@@ -31,19 +31,25 @@ export default function Input({
   ...props
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [focused, setFocused] = useState(false);
   const isPassword = secureTextEntry;
 
   return (
     <View style={[styles.container, containerStyle]}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.inputWrapper, error ? styles.inputError : styles.inputNormal]}>
+      <View style={[
+        styles.inputWrapper,
+        error ? styles.inputError : focused ? styles.inputFocused : styles.inputNormal,
+      ]}>
         {leftIcon && (
-          <Ionicons name={leftIcon} size={18} color={COLORS.textMuted} style={styles.leftIcon} />
+          <Ionicons name={leftIcon} size={18} color={focused ? COLORS.primary : COLORS.textMuted} style={styles.leftIcon} />
         )}
         <TextInput
           style={[styles.input, leftIcon && styles.inputWithLeft]}
           placeholderTextColor={COLORS.textMuted}
           secureTextEntry={isPassword && !showPassword}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           {...props}
         />
         {isPassword ? (
@@ -63,16 +69,17 @@ export default function Input({
 
 const styles = StyleSheet.create({
   container: { marginBottom: SPACING.md },
-  label: { fontSize: 13, fontWeight: "600", color: COLORS.text, marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: "600", color: COLORS.textSecondary, marginBottom: 6 },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
-    backgroundColor: COLORS.surface,
-    minHeight: 48,
+    backgroundColor: COLORS.surfaceElevated,
+    minHeight: 52,
   },
   inputNormal: { borderColor: COLORS.border },
+  inputFocused: { borderColor: COLORS.primary },
   inputError: { borderColor: COLORS.danger },
   input: {
     flex: 1,

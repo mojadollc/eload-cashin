@@ -7,7 +7,7 @@ import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
 import { transactionApi } from "@/api/endpoints";
 import Header from "@/components/Header";
-import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
+import { COLORS, SPACING, RADIUS } from "@/utils/theme";
 import { formatCurrency, formatDateTime, getStatusColor, getTransactionIcon } from "@/utils/helpers";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -18,6 +18,16 @@ const TYPE_LABELS: Record<string, string> = {
   REVERSAL: "Reversal",
   ADMIN_ADJUSTMENT: "Adjustment",
   FEE: "Fee",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  WALLET_FUND: COLORS.success,
+  REFUND: COLORS.success,
+  REVERSAL: COLORS.info,
+  ELOAD: COLORS.warning,
+  CASHOUT: COLORS.danger,
+  FEE: COLORS.textMuted,
+  ADMIN_ADJUSTMENT: COLORS.primary,
 };
 
 export default function TransactionDetailScreen() {
@@ -35,7 +45,7 @@ export default function TransactionDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.container}>
         <Header title="Transaction Details" />
         <ActivityIndicator color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
       </View>
@@ -46,6 +56,7 @@ export default function TransactionDetailScreen() {
 
   const isCredit = txn.type === "WALLET_FUND" || txn.type === "REFUND" || txn.type === "REVERSAL";
   const statusColor = getStatusColor(txn.status);
+  const iconColor = TYPE_COLORS[txn.type] || COLORS.primary;
 
   return (
     <View style={styles.container}>
@@ -54,18 +65,14 @@ export default function TransactionDetailScreen() {
 
         {/* Status Card */}
         <View style={styles.statusCard}>
-          <View style={[styles.iconCircle, { backgroundColor: isCredit ? "#E8FFF4" : "#FFF0F0" }]}>
-            <Ionicons
-              name={getTransactionIcon(txn.type) as any}
-              size={32}
-              color={isCredit ? COLORS.success : COLORS.danger}
-            />
+          <View style={[styles.iconCircle, { backgroundColor: iconColor + "20" }]}>
+            <Ionicons name={getTransactionIcon(txn.type) as any} size={32} color={iconColor} />
           </View>
           <Text style={styles.txnType}>{TYPE_LABELS[txn.type] || txn.type}</Text>
           <Text style={[styles.amount, { color: isCredit ? COLORS.success : COLORS.text }]}>
             {isCredit ? "+" : "-"}{formatCurrency(txn.grossAmount)}
           </Text>
-          <View style={[styles.statusPill, { backgroundColor: statusColor + "20" }]}>
+          <View style={[styles.statusPill, { backgroundColor: statusColor + "20", borderColor: statusColor + "40" }]}>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <Text style={[styles.statusText, { color: statusColor }]}>{txn.status}</Text>
           </View>
@@ -83,7 +90,6 @@ export default function TransactionDetailScreen() {
           {txn.provider && <DetailRow label="Provider" value={txn.provider} />}
         </View>
 
-        {/* E-Load Details */}
         {txn.eloadTxn && (
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>E-Load Details</Text>
@@ -93,7 +99,6 @@ export default function TransactionDetailScreen() {
           </View>
         )}
 
-        {/* Cashout Details */}
         {txn.cashoutTxn && (
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Cash Out Details</Text>
@@ -104,7 +109,6 @@ export default function TransactionDetailScreen() {
           </View>
         )}
 
-        {/* Funding Details */}
         {txn.fundingTxn && (
           <View style={styles.detailsCard}>
             <Text style={styles.cardTitle}>Funding Details</Text>
@@ -116,7 +120,9 @@ export default function TransactionDetailScreen() {
   );
 }
 
-function DetailRow({ label, value, onCopy, highlight }: { label: string; value: string; onCopy?: () => void; highlight?: boolean }) {
+function DetailRow({ label, value, onCopy, highlight }: {
+  label: string; value: string; onCopy?: () => void; highlight?: boolean;
+}) {
   return (
     <View style={detailStyles.row}>
       <Text style={detailStyles.label}>{label}</Text>
@@ -133,7 +139,14 @@ function DetailRow({ label, value, onCopy, highlight }: { label: string; value: 
 }
 
 const detailStyles = StyleSheet.create({
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
   label: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
   valueRow: { flexDirection: "row", alignItems: "center", gap: SPACING.xs, flex: 1, justifyContent: "flex-end" },
   value: { fontSize: 13, fontWeight: "600", color: COLORS.text, textAlign: "right" },
@@ -143,22 +156,44 @@ const detailStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
   statusCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.xxl,
     padding: SPACING.xl,
     alignItems: "center",
     marginBottom: SPACING.lg,
-    ...SHADOW.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  iconCircle: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: SPACING.md },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.md,
+  },
   txnType: { fontSize: 16, fontWeight: "600", color: COLORS.textSecondary, marginBottom: SPACING.sm },
-  amount: { fontSize: 32, fontWeight: "800", marginBottom: SPACING.md },
-  statusPill: { flexDirection: "row", alignItems: "center", borderRadius: RADIUS.full, paddingHorizontal: 14, paddingVertical: 6, gap: 6 },
+  amount: { fontSize: 36, fontWeight: "800", marginBottom: SPACING.md, letterSpacing: -1 },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    gap: 6,
+    borderWidth: 1,
+  },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 13, fontWeight: "700" },
-  detailsCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.lg, ...SHADOW.sm },
+  detailsCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
   cardTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.sm },
 });

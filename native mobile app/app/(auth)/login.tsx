@@ -184,6 +184,7 @@ export default function LoginScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.xl }]}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Logo */}
         <View style={styles.logoWrap}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>₱</Text>
@@ -196,10 +197,18 @@ export default function LoginScreen() {
           </Text>
         </View>
 
+        {/* Card */}
         <View style={styles.card}>
           {step === "mobile" && (
             <View style={styles.stepContent}>
-              <Input label="Mobile Number" placeholder="09XXXXXXXXX" keyboardType="phone-pad" value={mobile} onChangeText={setMobile} leftIcon="phone-portrait-outline" />
+              <Input
+                label="Mobile Number"
+                placeholder="09XXXXXXXXX"
+                keyboardType="phone-pad"
+                value={mobile}
+                onChangeText={setMobile}
+                leftIcon="phone-portrait-outline"
+              />
               <Button title="Send OTP" onPress={handleSendOtp} loading={loading} size="lg" style={styles.btn} />
               <View style={styles.linkRow}>
                 <Text style={styles.linkText}>No account? </Text>
@@ -249,23 +258,65 @@ export default function LoginScreen() {
 
 const pinStyles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "center", gap: SPACING.sm, marginVertical: SPACING.lg },
-  box: { width: 52, height: 60, borderRadius: RADIUS.md, borderWidth: 2, borderColor: COLORS.border, backgroundColor: COLORS.surface, textAlign: "center", fontSize: 24, color: COLORS.text },
+  box: {
+    width: 56,
+    height: 64,
+    borderRadius: RADIUS.lg,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceElevated,
+    textAlign: "center",
+    fontSize: 24,
+    color: COLORS.text,
+  },
   boxFilled: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
 });
+
 const otpStyles = StyleSheet.create({
-  row: { flexDirection: "row", justifyContent: "center", gap: SPACING.sm, marginVertical: SPACING.lg },
-  box: { width: 46, height: 54, borderRadius: RADIUS.md, borderWidth: 2, borderColor: COLORS.border, backgroundColor: COLORS.surface, textAlign: "center", fontSize: 22, fontWeight: "700", color: COLORS.text },
+  row: { flexDirection: "row", justifyContent: "center", gap: SPACING.xs + 2, marginVertical: SPACING.lg },
+  box: {
+    width: 48,
+    height: 56,
+    borderRadius: RADIUS.md,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceElevated,
+    textAlign: "center",
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
   boxFilled: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
 });
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xxl },
   logoWrap: { alignItems: "center", marginBottom: SPACING.xl },
-  logoCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", marginBottom: SPACING.sm },
-  logoText: { fontSize: 32, color: COLORS.white, fontWeight: "800" },
-  appName: { fontSize: 26, fontWeight: "800", color: COLORS.text },
-  tagline: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4, textAlign: "center" },
-  card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.xl, padding: SPACING.lg, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.md,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoText: { fontSize: 36, color: COLORS.white, fontWeight: "800" },
+  appName: { fontSize: 28, fontWeight: "800", color: COLORS.text },
+  tagline: { fontSize: 14, color: COLORS.textSecondary, marginTop: 6, textAlign: "center" },
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xxl,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
   stepContent: { gap: SPACING.sm },
   stepLabel: { fontSize: 14, color: COLORS.textSecondary, textAlign: "center" },
   stepValue: { fontSize: 16, fontWeight: "700", color: COLORS.text, textAlign: "center", marginBottom: SPACING.sm },

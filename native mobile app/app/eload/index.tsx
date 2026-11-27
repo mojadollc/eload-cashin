@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -17,7 +16,7 @@ import { eloadApi, walletApi } from "@/api/endpoints";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
-import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
+import { COLORS, SPACING, RADIUS } from "@/utils/theme";
 import { formatCurrency } from "@/utils/helpers";
 
 const NETWORK_COLORS: Record<string, string> = {
@@ -69,7 +68,6 @@ export default function EloadScreen() {
       Toast.show({ type: "error", text1: "Insufficient balance" });
       return;
     }
-
     Alert.alert(
       "Confirm E-Load",
       `Send ${selectedProduct.name} (${formatCurrency(selectedProduct.amount)}) to ${mobileNumber}?`,
@@ -104,8 +102,9 @@ export default function EloadScreen() {
       <Header title="Buy E-Load" />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        {/* Balance */}
-        <View style={styles.balanceRow}>
+        {/* Balance Banner */}
+        <View style={styles.balanceBanner}>
+          <Ionicons name="wallet-outline" size={16} color={COLORS.accent} />
           <Text style={styles.balanceLabel}>Balance:</Text>
           <Text style={styles.balance}>{formatCurrency(wallet?.availableBalance || "0")}</Text>
         </View>
@@ -128,21 +127,20 @@ export default function EloadScreen() {
           <ActivityIndicator color={COLORS.primary} style={{ marginVertical: SPACING.lg }} />
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.networksScroll}>
-            {uniqueNetworks.map((network) => (
-              <TouchableOpacity
-                key={network}
-                style={[
-                  styles.networkBtn,
-                  selectedNetwork === network && { borderColor: NETWORK_COLORS[network] || COLORS.primary, backgroundColor: (NETWORK_COLORS[network] || COLORS.primary) + "15" },
-                ]}
-                onPress={() => { setSelectedNetwork(network); setSelectedProduct(null); }}
-              >
-                <View style={[styles.networkDot, { backgroundColor: NETWORK_COLORS[network] || COLORS.primary }]} />
-                <Text style={[styles.networkText, selectedNetwork === network && { color: NETWORK_COLORS[network] || COLORS.primary }]}>
-                  {network}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {uniqueNetworks.map((network) => {
+              const color = NETWORK_COLORS[network] || COLORS.primary;
+              const active = selectedNetwork === network;
+              return (
+                <TouchableOpacity
+                  key={network}
+                  style={[styles.networkBtn, active && { borderColor: color, backgroundColor: color + "20" }]}
+                  onPress={() => { setSelectedNetwork(network); setSelectedProduct(null); }}
+                >
+                  <View style={[styles.networkDot, { backgroundColor: color }]} />
+                  <Text style={[styles.networkText, active && { color }]}>{network}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         )}
 
@@ -154,19 +152,14 @@ export default function EloadScreen() {
               {networkProducts.map((product: any) => (
                 <TouchableOpacity
                   key={product.id}
-                  style={[
-                    styles.productCard,
-                    selectedProduct?.id === product.id && styles.productCardActive,
-                  ]}
+                  style={[styles.productCard, selectedProduct?.id === product.id && styles.productCardActive]}
                   onPress={() => setSelectedProduct(product)}
                 >
                   <Text style={[styles.productAmount, selectedProduct?.id === product.id && styles.productAmountActive]}>
                     {formatCurrency(product.amount)}
                   </Text>
                   <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-                  {product.validity && (
-                    <Text style={styles.productValidity}>{product.validity}</Text>
-                  )}
+                  {product.validity && <Text style={styles.productValidity}>{product.validity}</Text>}
                   {selectedProduct?.id === product.id && (
                     <View style={styles.checkMark}>
                       <Ionicons name="checkmark-circle" size={18} color={COLORS.primary} />
@@ -178,7 +171,7 @@ export default function EloadScreen() {
           </>
         )}
 
-        {/* Selected Summary */}
+        {/* Summary */}
         {selectedProduct && (
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Selected Load</Text>
@@ -203,19 +196,28 @@ export default function EloadScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
-  balanceRow: {
+  balanceBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.accentLight,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
     gap: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.accent + "30",
   },
   balanceLabel: { fontSize: 14, color: COLORS.textSecondary },
-  balance: { fontSize: 16, fontWeight: "800", color: COLORS.primary },
-  card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, ...SHADOW.sm, marginBottom: SPACING.lg },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.sm },
+  balance: { fontSize: 16, fontWeight: "800", color: COLORS.accent },
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.lg,
+  },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.textSecondary, marginBottom: SPACING.sm, textTransform: "uppercase", letterSpacing: 0.5 },
   networksScroll: { marginBottom: SPACING.lg },
   networkBtn: {
     flexDirection: "row",
@@ -235,11 +237,10 @@ const styles = StyleSheet.create({
   productCard: {
     width: "47%",
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    ...SHADOW.sm,
     position: "relative",
   },
   productCardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
@@ -254,9 +255,11 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.primary + "30",
   },
   summaryTitle: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 4 },
   summaryProduct: { fontSize: 14, fontWeight: "600", color: COLORS.text, textAlign: "center" },
-  summaryAmount: { fontSize: 24, fontWeight: "800", color: COLORS.primary, marginTop: 4 },
+  summaryAmount: { fontSize: 26, fontWeight: "800", color: COLORS.primary, marginTop: 4 },
   btn: { marginTop: SPACING.sm },
 });

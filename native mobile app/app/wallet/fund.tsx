@@ -15,7 +15,7 @@ import { walletApi } from "@/api/endpoints";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
 import Input from "@/components/Input";
-import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
+import { COLORS, SPACING, RADIUS } from "@/utils/theme";
 import { formatCurrency } from "@/utils/helpers";
 
 const PRESET_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
@@ -59,8 +59,9 @@ export default function FundWalletScreen() {
       <Header title="Fund Wallet" />
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
-        <View style={styles.card}>
-          <Text style={styles.label}>Enter Amount</Text>
+        {/* Amount Input */}
+        <View style={styles.amountCard}>
+          <Text style={styles.amountCardLabel}>Enter Amount</Text>
           <View style={styles.amountRow}>
             <Text style={styles.peso}>₱</Text>
             <Input
@@ -69,13 +70,13 @@ export default function FundWalletScreen() {
               value={amount}
               onChangeText={setAmount}
               containerStyle={{ flex: 1, marginBottom: 0 }}
-              style={{ fontSize: 28, fontWeight: "700" } as any}
+              style={{ fontSize: 32, fontWeight: "800", color: COLORS.text } as any}
             />
           </View>
-          <Text style={styles.hint}>Min: ₱100 · Max: ₱50,000</Text>
+          <Text style={styles.hint}>Min ₱100 · Max ₱50,000</Text>
         </View>
 
-        {/* Preset amounts */}
+        {/* Preset Amounts */}
         <Text style={styles.sectionLabel}>Quick Select</Text>
         <View style={styles.presetGrid}>
           {PRESET_AMOUNTS.map((a) => (
@@ -101,14 +102,16 @@ export default function FundWalletScreen() {
             </View>
             <View style={styles.divider} />
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { fontWeight: "700" }]}>You Pay</Text>
-              <Text style={[styles.summaryValue, { color: COLORS.primary, fontWeight: "800" }]}>
+              <Text style={[styles.summaryLabel, { fontWeight: "700", color: COLORS.text }]}>You Pay</Text>
+              <Text style={[styles.summaryValue, { color: COLORS.primary, fontWeight: "800", fontSize: 16 }]}>
                 {formatCurrency(numAmount)}
               </Text>
             </View>
-            <Text style={styles.paymentNote}>
-              You'll be redirected to PayMongo to complete payment via GCash, Maya, or card.
-            </Text>
+            <View style={styles.paymentNote}>
+              <Text style={styles.paymentNoteText}>
+                You'll be redirected to complete payment via GCash, Maya, or card.
+              </Text>
+            </View>
           </View>
         )}
 
@@ -128,30 +131,52 @@ export default function FundWalletScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   content: { padding: SPACING.lg, paddingBottom: SPACING.xxl },
-  card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOW.sm, marginBottom: SPACING.lg },
-  label: { fontSize: 13, fontWeight: "600", color: COLORS.textSecondary, marginBottom: SPACING.sm },
+  amountCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.lg,
+  },
+  amountCardLabel: { fontSize: 13, fontWeight: "600", color: COLORS.textSecondary, marginBottom: SPACING.sm },
   amountRow: { flexDirection: "row", alignItems: "center" },
-  peso: { fontSize: 28, fontWeight: "700", color: COLORS.text, marginRight: SPACING.xs },
-  hint: { fontSize: 12, color: COLORS.textMuted, marginTop: SPACING.xs },
-  sectionLabel: { fontSize: 14, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.sm },
+  peso: { fontSize: 32, fontWeight: "800", color: COLORS.textMuted, marginRight: SPACING.xs },
+  hint: { fontSize: 12, color: COLORS.textMuted, marginTop: SPACING.sm },
+  sectionLabel: { fontSize: 13, fontWeight: "700", color: COLORS.textSecondary, marginBottom: SPACING.sm, textTransform: "uppercase", letterSpacing: 0.5 },
   presetGrid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, marginBottom: SPACING.lg },
   presetBtn: {
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
+    minWidth: "30%",
+    alignItems: "center",
   },
   presetBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
   presetText: { fontSize: 14, fontWeight: "600", color: COLORS.textSecondary },
   presetTextActive: { color: COLORS.primary },
-  summaryCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.lg, ...SHADOW.sm, marginBottom: SPACING.lg },
+  summaryCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.lg,
+  },
   summaryTitle: { fontSize: 15, fontWeight: "700", color: COLORS.text, marginBottom: SPACING.md },
   summaryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.sm },
   summaryLabel: { fontSize: 14, color: COLORS.textSecondary },
   summaryValue: { fontSize: 14, fontWeight: "600", color: COLORS.text },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: SPACING.sm },
-  paymentNote: { fontSize: 12, color: COLORS.textMuted, marginTop: SPACING.sm, lineHeight: 18 },
+  paymentNote: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  paymentNoteText: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 18 },
   btn: { marginTop: SPACING.sm },
 });

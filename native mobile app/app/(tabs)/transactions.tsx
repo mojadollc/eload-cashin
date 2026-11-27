@@ -38,12 +38,10 @@ export default function TransactionsScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Transaction History</Text>
+        <Text style={styles.title}>Activity</Text>
       </View>
 
-      {/* Filter Tabs */}
       <View style={styles.filterRow}>
         {FILTERS.map((f) => (
           <TouchableOpacity
@@ -74,7 +72,9 @@ export default function TransactionsScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📋</Text>
+              <View style={styles.emptyIconWrap}>
+                <Text style={styles.emptyIcon}>📋</Text>
+              </View>
               <Text style={styles.emptyText}>No transactions found</Text>
             </View>
           }
@@ -93,16 +93,43 @@ export default function TransactionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  title: { fontSize: 20, fontWeight: "800", color: COLORS.text },
-  filterRow: { flexDirection: "row", paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, backgroundColor: COLORS.surface, gap: SPACING.sm },
-  filterTab: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.full, backgroundColor: COLORS.background },
-  filterTabActive: { backgroundColor: COLORS.primary },
+  header: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
+  filterRow: {
+    flexDirection: "row",
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  filterTab: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs + 2,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  filterTabActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
   filterText: { fontSize: 13, fontWeight: "600", color: COLORS.textSecondary },
   filterTextActive: { color: COLORS.white },
-  list: { padding: SPACING.lg },
+  list: { paddingHorizontal: SPACING.lg, paddingBottom: 100 },
   empty: { alignItems: "center", paddingVertical: SPACING.xxl },
-  emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.md,
+  },
+  emptyIcon: { fontSize: 32 },
   emptyText: { fontSize: 15, color: COLORS.textMuted },
   loadMore: { alignItems: "center", padding: SPACING.md },
   loadMoreText: { color: COLORS.primary, fontWeight: "600" },

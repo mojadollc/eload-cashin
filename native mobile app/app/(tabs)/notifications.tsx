@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { notificationApi } from "@/api/endpoints";
-import { COLORS, SPACING, RADIUS, SHADOW } from "@/utils/theme";
+import { COLORS, SPACING, RADIUS } from "@/utils/theme";
 import { formatDateTime } from "@/utils/helpers";
 
 const TYPE_ICONS: Record<string, { icon: string; color: string }> = {
@@ -50,6 +50,13 @@ export default function NotificationsScreen() {
         )}
       </View>
 
+      {unread > 0 && (
+        <View style={styles.unreadBanner}>
+          <Ionicons name="ellipse" size={8} color={COLORS.primary} />
+          <Text style={styles.unreadText}>{unread} unread notification{unread > 1 ? "s" : ""}</Text>
+        </View>
+      )}
+
       {isLoading ? (
         <ActivityIndicator color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
       ) : (
@@ -62,7 +69,7 @@ export default function NotificationsScreen() {
             const meta = TYPE_ICONS[item.type] || { icon: "notifications", color: COLORS.primary };
             return (
               <View style={[styles.item, !item.read && styles.itemUnread]}>
-                <View style={[styles.iconWrap, { backgroundColor: meta.color + "15" }]}>
+                <View style={[styles.iconWrap, { backgroundColor: meta.color + "20" }]}>
                   <Ionicons name={meta.icon as any} size={20} color={meta.color} />
                 </View>
                 <View style={styles.content}>
@@ -76,7 +83,9 @@ export default function NotificationsScreen() {
           }}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>🔔</Text>
+              <View style={styles.emptyIconWrap}>
+                <Ionicons name="notifications-off-outline" size={32} color={COLORS.textMuted} />
+              </View>
               <Text style={styles.emptyText}>No notifications yet</Text>
             </View>
           }
@@ -94,31 +103,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
-  title: { fontSize: 20, fontWeight: "800", color: COLORS.text },
+  title: { fontSize: 26, fontWeight: "800", color: COLORS.text },
   markAllBtn: { paddingHorizontal: SPACING.sm },
   markAllText: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
-  list: { padding: SPACING.lg },
+  unreadBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    alignSelf: "flex-start",
+  },
+  unreadText: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
+  list: { paddingHorizontal: SPACING.lg, paddingBottom: 100 },
   item: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
-    ...SHADOW.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  itemUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary },
-  iconWrap: { width: 40, height: 40, borderRadius: RADIUS.full, alignItems: "center", justifyContent: "center", marginRight: SPACING.md },
+  itemUnread: { borderLeftWidth: 3, borderLeftColor: COLORS.primary, borderColor: COLORS.primary },
+  iconWrap: { width: 42, height: 42, borderRadius: RADIUS.full, alignItems: "center", justifyContent: "center", marginRight: SPACING.md },
   content: { flex: 1 },
   notifTitle: { fontSize: 14, fontWeight: "700", color: COLORS.text },
   message: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2, lineHeight: 18 },
   time: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, marginTop: 4 },
   empty: { alignItems: "center", paddingVertical: SPACING.xxl },
-  emptyIcon: { fontSize: 48, marginBottom: SPACING.md },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.md,
+  },
   emptyText: { fontSize: 15, color: COLORS.textMuted },
 });

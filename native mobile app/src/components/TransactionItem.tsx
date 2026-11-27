@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, RADIUS, SPACING, SHADOW } from "@/utils/theme";
+import { COLORS, RADIUS, SPACING } from "@/utils/theme";
 import { formatCurrency, formatDateTime, getTransactionIcon, getStatusColor } from "@/utils/helpers";
 
 interface TransactionItemProps {
@@ -31,18 +31,25 @@ const TYPE_LABELS: Record<string, string> = {
   FEE: "Fee",
 };
 
+const TYPE_COLORS: Record<string, string> = {
+  WALLET_FUND: COLORS.success,
+  REFUND: COLORS.success,
+  REVERSAL: COLORS.info,
+  ELOAD: COLORS.warning,
+  CASHOUT: COLORS.danger,
+  FEE: COLORS.textMuted,
+  ADMIN_ADJUSTMENT: COLORS.primary,
+};
+
 export default function TransactionItem({ transaction: t, onPress }: TransactionItemProps) {
   const isCredit = t.type === "WALLET_FUND" || t.type === "REFUND" || t.type === "REVERSAL";
-  const amount = parseFloat(t.grossAmount);
+  const iconColor = TYPE_COLORS[t.type] || COLORS.primary;
+  const statusColor = getStatusColor(t.status);
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.container} activeOpacity={0.7}>
-      <View style={[styles.iconWrap, { backgroundColor: isCredit ? "#E8FFF4" : "#FFF0F0" }]}>
-        <Ionicons
-          name={getTransactionIcon(t.type) as any}
-          size={20}
-          color={isCredit ? COLORS.success : COLORS.danger}
-        />
+      <View style={[styles.iconWrap, { backgroundColor: iconColor + "20" }]}>
+        <Ionicons name={getTransactionIcon(t.type) as any} size={20} color={iconColor} />
       </View>
       <View style={styles.info}>
         <Text style={styles.type}>{TYPE_LABELS[t.type] || t.type}</Text>
@@ -51,10 +58,10 @@ export default function TransactionItem({ transaction: t, onPress }: Transaction
       </View>
       <View style={styles.right}>
         <Text style={[styles.amount, { color: isCredit ? COLORS.success : COLORS.text }]}>
-          {isCredit ? "+" : "-"}{formatCurrency(amount)}
+          {isCredit ? "+" : "-"}{formatCurrency(parseFloat(t.grossAmount))}
         </Text>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(t.status) + "20" }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(t.status) }]}>{t.status}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor + "20" }]}>
+          <Text style={[styles.statusText, { color: statusColor }]}>{t.status}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -67,9 +74,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.surface,
     padding: SPACING.md,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     marginBottom: SPACING.sm,
-    ...SHADOW.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   iconWrap: {
     width: 44,

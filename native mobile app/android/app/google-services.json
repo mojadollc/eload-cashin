@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "755947938921",
+    "project_id": "cashintap",
+    "storage_bucket": "cashintap.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:755947938921:android:e68d468cedc0a3ae59aef8",
+        "android_client_info": {
+          "package_name": "com.cashintap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMd57bAG38cG9_ww_KP2hvN1jTsQ5zJj4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

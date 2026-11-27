@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, RefreshCw, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, RefreshCw, Eye, EyeOff, Upload, Palette } from "lucide-react";
 
 const PAYMONGO_FIELDS = [
   { key: "PAYMONGO_SECRET_KEY", label: "Secret Key", placeholder: "sk_live_..." },
@@ -40,8 +40,23 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [restarting, setRestarting] = useState(false);
 
+  // Branding state
+  const [branding, setBranding] = useState({ primaryColor: "#038E80", secondaryColor: "#0ea5e9", appName: "CashIn Tap", logoUrl: "", faviconUrl: "" });
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
+  const faviconRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const [faviconPreview, setFaviconPreview] = useState("");
+  const [uploading, setUploading] = useState<"logo" | "favicon" | null>(null);
+
   useEffect(() => {
     api.get("/api/admin/settings").then(d => { if (d) setValues(d); });
+    fetch("/api/branding").then(r => r.json()).then(d => {
+      setBranding(b => ({ ...b, ...d }));
+      if (d.logoUrl) setLogoPreview(d.logoUrl);
+      if (d.faviconUrl) setFaviconPreview(d.faviconUrl);
+    }).catch(() => {});
   }, []);
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -49,6 +64,46 @@ export default function AdminSettingsPage() {
 
   const toggleShow = (key: string) =>
     setShow(s => ({ ...s, [key]: !s[key] }));
+
+  const handleBrandSave = async () => {
+    setBrandSaving(true);
+    const token = JSON.parse(localStorage.getItem("auth") || "{}")?.accessToken;
+    await fetch("/api/admin/branding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ primaryColor: branding.primaryColor, secondaryColor: branding.secondaryColor, appName: branding.appName }),
+    });
+    // Apply immediately to current page
+    document.documentElement.style.setProperty("--brand", branding.primaryColor);
+    document.documentElement.style.setProperty("--secondary", branding.secondaryColor);
+    setBrandSaving(false);
+    setBrandSaved(true);
+    setTimeout(() => setBrandSaved(false), 3000);
+  };
+
+  const handleFileUpload = async (type: "logo" | "favicon", file: File) => {
+    setUploading(type);
+    const token = JSON.parse(localStorage.getItem("auth") || "{}")?.accessToken;
+    const form = new FormData();
+    form.append("type", type);
+    form.append("file", file);
+    const res = await fetch("/api/admin/branding", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (data.url) {
+      if (type === "logo") setLogoPreview(data.url);
+      else {
+        setFaviconPreview(data.url);
+        // Update favicon in browser immediately
+        const link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+        if (link) link.href = data.url;
+      }
+    }
+    setUploading(null);
+  };
 
   const handleSave = async (restart = false) => {
     if (restart) {
@@ -95,6 +150,117 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Branding Card */}
+        <Card className="lg:col-span-2">
+          <CardContent className="pt-6 space-y-5">
+            <div className="flex items-center gap-2">
+              <Palette size={16} className="text-[var(--brand)]" />
+              <h2 className="font-semibold">Branding & Theme</h2>
+              {brandSaved && <span className="ml-auto flex items-center gap-1 text-xs text-green-600"><CheckCircle size={13} /> Saved</span>}
+            </div>
+            <p className="text-xs text-gray-400">Changes apply instantly across the entire web app without a restart.</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* App Name */}
+              <Input
+                label="App Name"
+                value={branding.appName}
+                onChange={e => setBranding(b => ({ ...b, appName: e.target.value }))}
+                placeholder="CashIn Tap"
+              />
+
+              {/* Primary Color */}
+              <div>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Primary Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={branding.primaryColor}
+                    onChange={e => setBranding(b => ({ ...b, primaryColor: e.target.value }))}
+                    className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                  />
+                  <input
+                    type="text"
+                    value={branding.primaryColor}
+                    onChange={e => setBranding(b => ({ ...b, primaryColor: e.target.value }))}
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/20"
+                    placeholder="#038E80"
+                  />
+                </div>
+                <div className="mt-2 h-6 rounded-lg" style={{ background: `linear-gradient(135deg, ${branding.primaryColor}, ${branding.secondaryColor})` }} />
+              </div>
+
+              {/* Secondary Color */}
+              <div>
+                <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Secondary / Accent Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={branding.secondaryColor}
+                    onChange={e => setBranding(b => ({ ...b, secondaryColor: e.target.value }))}
+                    className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                  />
+                  <input
+                    type="text"
+                    value={branding.secondaryColor}
+                    onChange={e => setBranding(b => ({ ...b, secondaryColor: e.target.value }))}
+                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/20"
+                    placeholder="#0ea5e9"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Image uploads */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Logo */}
+              <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+                <p className="text-[13px] font-medium text-slate-700">App Logo</p>
+                <p className="text-xs text-gray-400">Shown in sidebar and login page. PNG/SVG recommended.</p>
+                <div className="flex items-center gap-3">
+                  {logoPreview && (
+                    <img src={logoPreview} alt="Logo" className="h-10 w-auto max-w-[120px] object-contain rounded-lg border border-slate-100" />
+                  )}
+                  <button
+                    onClick={() => logoRef.current?.click()}
+                    disabled={uploading === "logo"}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-[13px] text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+                  >
+                    <Upload size={14} />
+                    {uploading === "logo" ? "Uploading..." : "Upload Logo"}
+                  </button>
+                  <input ref={logoRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload("logo", f); e.target.value = ""; }} />
+                </div>
+              </div>
+
+              {/* Favicon */}
+              <div className="border border-slate-200 rounded-xl p-4 space-y-3">
+                <p className="text-[13px] font-medium text-slate-700">Browser Favicon / Icon</p>
+                <p className="text-xs text-gray-400">Shown in browser tab. ICO or 32×32 PNG recommended.</p>
+                <div className="flex items-center gap-3">
+                  {faviconPreview && (
+                    <img src={faviconPreview} alt="Favicon" className="h-8 w-8 object-contain rounded border border-slate-100" />
+                  )}
+                  <button
+                    onClick={() => faviconRef.current?.click()}
+                    disabled={uploading === "favicon"}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-[13px] text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
+                  >
+                    <Upload size={14} />
+                    {uploading === "favicon" ? "Uploading..." : "Upload Favicon"}
+                  </button>
+                  <input ref={faviconRef} type="file" accept="image/*,.ico" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload("favicon", f); e.target.value = ""; }} />
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={handleBrandSave} loading={brandSaving} size="sm">
+              Save Branding
+            </Button>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-semibold">PayMongo API</h2>
