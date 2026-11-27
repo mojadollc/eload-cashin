@@ -32,6 +32,15 @@ export default function EloadScreen() {
     queryFn: () => eloadApi.getProducts().then((r) => r.data.data),
   });
 
+  const { data: feeData } = useQuery({
+    queryKey: ["eload-fees", selectedProduct?.amount],
+    queryFn: () => eloadApi.getFees(selectedProduct!.amount).then((r) => r.data.data),
+    enabled: !!selectedProduct,
+  });
+
+  const systemFee: number = feeData?.systemFee ?? 0;
+  const totalRequired: number = selectedProduct ? selectedProduct.amount + systemFee : 0;
+
   const networks = productsData?.grouped
     ? [...new Set(Object.values(productsData.grouped).flatMap((cat: any) => Object.keys(cat)))] as string[]
     : [];
@@ -47,12 +56,12 @@ export default function EloadScreen() {
     if (!selectedProduct) {
       Toast.show({ type: "error", text1: "Select a load product" }); return;
     }
-    if (selectedProduct.amount > parseFloat(wallet?.availableBalance || "0")) {
+    if (totalRequired > parseFloat(wallet?.availableBalance || "0")) {
       Toast.show({ type: "error", text1: "Insufficient balance" }); return;
     }
     Alert.alert(
       "Confirm E-Load",
-      `Send ${selectedProduct.name}\n${formatCurrency(selectedProduct.amount)} → ${mobileNumber}`,
+      `Send ${selectedProduct.name}\n${formatCurrency(selectedProduct.amount)} → ${mobileNumber}${systemFee > 0 ? `\n\nFee: ${formatCurrency(systemFee)}\nTotal: ${formatCurrency(totalRequired)}` : ""}`,
       [{ text: "Cancel", style: "cancel" }, { text: "Confirm", onPress: doPurchase }]
     );
   };
@@ -64,7 +73,7 @@ export default function EloadScreen() {
         mobileNumber,
         productCode: selectedProduct.productCode,
         network: selectedProduct.network,
-        loadAmount: parseFloat(selectedProduct.amount),
+        loadAmount: selectedProduct.amount,
         promoId: selectedProduct.promoId,
       });
       Toast.show({ type: "success", text1: "E-Load sent!" });
@@ -128,10 +137,10 @@ export default function EloadScreen() {
             <Text style={styles.sectionLabel}>Select Load</Text>
             <View style={styles.productsGrid}>
               {networkProducts.map((product: any) => {
-                const active = selectedProduct?.id === product.id;
+                const active = selectedProduct?.productCode === product.productCode;
                 return (
                   <TouchableOpacity
-                    key={product.id}
+                    key={product.productCode}
                     style={[styles.productCard, active && styles.productCardActive]}
                     onPress={() => setSelectedProduct(product)}
                     activeOpacity={0.7}
@@ -166,8 +175,19 @@ export default function EloadScreen() {
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Amount</Text>
-              <Text style={[styles.summaryValue, styles.summaryAmount]}>{formatCurrency(selectedProduct.amount)}</Text>
+              <Text style={styles.summaryLabel}>Load amount</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(selectedProduct.amount)}</Text>
+            </View>
+            {systemFee > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Service fee</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(systemFee)}</Text>
+              </View>
+            )}
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total deducted</Text>
+              <Text style={[styles.summaryValue, styles.summaryAmount]}>{formatCurrency(totalRequired)}</Text>
             </View>
           </View>
         )}

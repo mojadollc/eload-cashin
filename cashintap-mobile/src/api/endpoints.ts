@@ -68,6 +68,8 @@ export const transferApi = {
 
 export const eloadApi = {
   getProducts: () => api.get("/api/mobile/eload/products"),
+  getFees: (amount: number) =>
+    api.get(`/api/mobile/fees?service=ELOAD&amount=${amount}`),
   purchase: (data: {
     mobileNumber: string;
     productCode: string;
