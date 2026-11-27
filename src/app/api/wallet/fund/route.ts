@@ -6,9 +6,9 @@ import { z } from "zod";
 import { TransactionType, TransactionStatus, Provider, FeeService } from "@/types/enums";
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
 import { calculateFee } from "@/services/fees/fee.service";
-import { createCheckoutSession } from "@/providers/paymongo/paymongo.provider";
+import { createQRCode, QRPH_FEE_RATE } from "@/providers/paymongo/paymongo.provider";
 
-const schema = z.object({ amount: z.number().min(100).max(50000), paymentMethod: z.string().optional() });
+const schema = z.object({ amount: z.number().min(100).max(50000) });
 
 export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) => {
   const body = await req.json();
@@ -20,8 +20,19 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
   if (wallet.status !== "ACTIVE") return NextResponse.json({ error: "Your wallet is not active" }, { status: 403 });
 
   const { amount } = parsed.data;
-  const fee = await calculateFee(FeeService.WALLET_FUND, amount);
-  const totalAmount = amount + fee;
+
+  // App service fee (from fee rules)
+  const appFee = await calculateFee(FeeService.WALLET_FUND, amount);
+
+  // PayMongo QR Ph fee: 1.5% of the amount the user wants credited
+  const qrphFee = Math.ceil(amount * QRPH_FEE_RATE * 100) / 100;
+
+  // Total fee charged to user = app fee + QR Ph provider fee
+  const totalFee = appFee + qrphFee;
+
+  // Total user pays = desired credit amount + all fees
+  const totalCharge = amount + totalFee;
+
   const txnNumber = generateTransactionNumber("WALLET_FUND");
 
   const transaction = await prisma.$transaction(async (tx: any) => {
@@ -31,39 +42,48 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
         userId: payload.userId,
         type: TransactionType.WALLET_FUND,
         status: TransactionStatus.PENDING,
-        grossAmount: amount,
-        feeAmount: fee,
-        netAmount: totalAmount,
+        grossAmount: amount,       // amount credited to wallet on success
+        feeAmount: totalFee,       // total fee (app + qrph)
+        netAmount: totalCharge,    // what user actually pays
         provider: Provider.PAYMONGO,
         idempotencyKey: generateIdempotencyKey(),
+        metadata: { qrphFee, appFee },
       },
     });
-    await tx.fundingTransaction.create({ data: { transactionId: txn.id, paymentMethod: parsed.data.paymentMethod || "" } });
+    await tx.fundingTransaction.create({ data: { transactionId: txn.id, paymentMethod: "qrph" } });
     await tx.providerTransaction.create({ data: { transactionId: txn.id, provider: Provider.PAYMONGO } });
     return txn;
   });
 
-  let session;
+  let source: any;
   try {
-    session = await createCheckoutSession({
-      externalId: txnNumber,
-      amount: totalAmount,
-      description: fee > 0
-        ? `CashIn Tap Wallet Funding - ${txnNumber} (Load: ₱${amount.toFixed(2)} + Fee: ₱${fee.toFixed(2)})`
-        : `CashIn Tap Wallet Funding - ${txnNumber}`,
-      successUrl: `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}`,
-      cancelUrl: `${process.env.APP_URL}/wallet/fund/return?ref=${txnNumber}&failed=1`,
-    });
+    // QR is generated for totalCharge — what the user scans and pays
+    source = await createQRCode({ externalId: txnNumber, amount: totalCharge });
   } catch (err: any) {
     await prisma.transaction.update({ where: { id: transaction.id }, data: { status: TransactionStatus.FAILED } });
     return NextResponse.json({ error: err.message || "Payment provider error" }, { status: 502 });
   }
 
-  const checkoutUrl = session.attributes?.checkout_url;
+  const qrData: string = source.attributes?.qr_code_url || source.attributes?.qr_image || "";
+  const sourceId: string = source.id || "";
+
   await prisma.fundingTransaction.update({
     where: { transactionId: transaction.id },
-    data: { paymongoLinkId: session.id, checkoutUrl, paymentMethod: parsed.data.paymentMethod || "" },
+    data: {
+      paymongoLinkId: sourceId,   // reuse field for QR source ID
+      checkoutUrl: qrData,        // reuse field for QR image/data URL
+      paymentMethod: "qrph",
+    },
   });
 
-  return NextResponse.json({ checkoutUrl, transactionNumber: txnNumber, amount, fee, total: totalAmount });
+  return NextResponse.json({
+    transactionNumber: txnNumber,
+    qrData,
+    sourceId,
+    amount,
+    appFee,
+    qrphFee,
+    totalFee,
+    totalCharge,
+  });
 });

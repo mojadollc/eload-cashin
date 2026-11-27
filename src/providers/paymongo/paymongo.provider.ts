@@ -24,7 +24,38 @@ function getClient() {
   });
 }
 
-// ── Wallet Funding ────────────────────────────────────────────────────────────
+// ── QR Ph (Dynamic QR) ───────────────────────────────────────────────────────
+// PayMongo charges 1.5% per QR Ph transaction — passed through to user
+export const QRPH_FEE_RATE = 0.015;
+
+export async function createQRCode(params: { externalId: string; amount: number }) {
+  try {
+    const { data } = await getClient().post("/sources", {
+      data: {
+        attributes: {
+          amount: Math.round(params.amount * 100),
+          currency: "PHP",
+          type: "qrph",
+          redirect: {
+            success: `${process.env.APP_URL}/wallet/fund/return?ref=${params.externalId}`,
+            failed: `${process.env.APP_URL}/wallet/fund/return?ref=${params.externalId}&failed=1`,
+          },
+        },
+      },
+    });
+    return data.data;
+  } catch (err: any) {
+    const pmError = err?.response?.data?.errors?.[0];
+    throw new Error(pmError?.detail || pmError?.code || "PayMongo QR Ph creation failed");
+  }
+}
+
+export async function getQRCode(sourceId: string) {
+  const { data } = await getClient().get(`/sources/${sourceId}`);
+  return data.data;
+}
+
+// ── Wallet Funding (Checkout Session) ────────────────────────────────────────
 
 export interface CreateCheckoutSessionParams {
   externalId: string;
