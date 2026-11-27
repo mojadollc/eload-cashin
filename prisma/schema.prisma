@@ -203,6 +203,7 @@ model Transaction {
   providerReference String?
   idempotencyKey    String            @unique
   metadata          Json?
+  failureReason     String?
   createdAt         DateTime          @default(now())
   completedAt       DateTime?
   failedAt          DateTime?

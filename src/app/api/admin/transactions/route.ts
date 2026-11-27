@@ -23,7 +23,7 @@ export const GET = requireAuth(async (req: NextRequest, _payload: JwtPayload) =>
   const [transactions, total] = await Promise.all([
     prisma.transaction.findMany({
       where,
-      include: { user: { select: { userId: true, firstName: true, lastName: true } }, eloadTxn: true, cashoutTxn: true },
+      include: { user: { select: { userId: true, firstName: true, lastName: true } }, eloadTxn: true, cashoutTxn: true, providerTxn: true },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,

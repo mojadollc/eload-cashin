@@ -77,9 +77,10 @@ export async function processCashout(transactionId: string, holdId: string) {
     });
 
     return { success: true, disbursementId: resultId };
-  } catch (error) {
+  } catch (error: any) {
     await releaseHold(holdId);
-    await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.FAILED, failedAt: new Date() } });
+    const failureReason = error?.message || "Unknown error";
+    await prisma.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.FAILED, failedAt: new Date(), failureReason } });
     return { success: false, error };
   }
 }

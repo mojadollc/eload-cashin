@@ -4,7 +4,7 @@ import { useApi } from "@/components/shared/use-api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, XCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, XCircle, AlertCircle } from "lucide-react";
 
 const TYPES = ["All", "WALLET_FUND", "ELOAD", "CASHOUT", "REFUND", "ADMIN_ADJUSTMENT"];
 const STATUSES = ["All", "SUCCESS", "PENDING", "PROCESSING", "FAILED", "REVERSED", "REFUNDED", "CANCELLED"];
@@ -106,7 +106,17 @@ export default function AdminTransactionsPage() {
                       <td className="py-2.5 font-medium">{formatCurrency(txn.grossAmount)}</td>
                       <td className="py-2.5 text-gray-500">{formatCurrency(txn.feeAmount)}</td>
                       <td className="py-2.5 text-xs text-gray-500">{txn.provider || "—"}</td>
-                      <td className="py-2.5"><Badge status={txn.status} /></td>
+                      <td className="py-2.5"><Badge status={txn.status} />
+                        {txn.status === "FAILED" && txn.type === "CASHOUT" && (txn.failureReason || txn.providerTxn?.responsePayload) && (
+                          <div className="group relative inline-block ml-1">
+                            <AlertCircle size={13} className="text-red-400 cursor-pointer inline" />
+                            <div className="absolute z-10 hidden group-hover:block left-0 top-5 w-72 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-xl">
+                              <p className="font-semibold text-red-300 mb-1">Failure Reason</p>
+                              <p className="break-words">{txn.failureReason || JSON.stringify(txn.providerTxn?.responsePayload?.data?.attributes?.errors ?? txn.providerTxn?.responsePayload, null, 2)}</p>
+                            </div>
+                          </div>
+                        )}
+                      </td>
                       <td className="py-2.5 text-xs text-gray-400">{formatDate(txn.createdAt)}</td>
                       <td className="py-2.5">
                         {(txn.status === "PENDING" || txn.status === "PROCESSING") && (
