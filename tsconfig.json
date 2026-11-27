@@ -44,6 +44,7 @@
   ],
   "exclude": [
     "node_modules",
-    "native mobile app"
+    "native mobile app",
+    "cashintap-mobile"
   ]
 }
