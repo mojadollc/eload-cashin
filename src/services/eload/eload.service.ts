@@ -3,7 +3,7 @@ import { TransactionType, TransactionStatus, Provider, FeeService } from "@/type
 import { generateTransactionNumber, generateIdempotencyKey } from "@/lib/security/generators";
 import { reserveFunds, releaseHold, consumeHold } from "@/services/wallet/wallet.service";
 import { calculateFee } from "@/services/fees/fee.service";
-import { purchaseLoad } from "@/providers/gbits/gbits.provider";
+import { purchaseLoad, checkTransaction } from "@/providers/gbits/gbits.provider";
 import { eloadQueue } from "@/workers/queues";
 
 export async function initiateEload(userId: string, mobileNumber: string, productCode: string, network: string, loadAmount: number, promoId?: number) {
@@ -53,6 +53,34 @@ export async function processEload(transactionId: string, holdId: string) {
     console.log(`[eload] calling purchaseLoad:`, JSON.stringify(params));
     const result = await purchaseLoad(params);
     console.log(`[eload] purchaseLoad result:`, JSON.stringify(result));
+
+    if (result.status === "pending") {
+      // GBits errorCode 105 — transaction queued, poll for final status
+      await prisma.$transaction(async (tx: any) => {
+        await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.transaction_id, responsePayload: result, status: "pending", attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });
+        await tx.eloadTransaction.update({ where: { transactionId }, data: { providerRef: result.transaction_id, providerStatus: "pending" } });
+        await tx.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.PROCESSING, providerReference: result.transaction_id } });
+      });
+      // Poll GBits for final status (up to 5 attempts, 3s apart)
+      for (let i = 0; i < 5; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const check = await checkTransaction(result.transaction_id);
+        if (check.status === "completed") {
+          await prisma.$transaction(async (tx: any) => {
+            await tx.providerTransaction.update({ where: { transactionId }, data: { status: "completed", lastAttemptAt: new Date() } });
+            await tx.eloadTransaction.update({ where: { transactionId }, data: { providerStatus: "completed" } });
+            await tx.transaction.update({ where: { id: transactionId }, data: { status: TransactionStatus.SUCCESS, completedAt: new Date() } });
+          });
+          await consumeHold(holdId, transactionId, `E-load: ${txn.eloadTxn.network} ₱${txn.eloadTxn.loadAmount}`);
+          return { success: true };
+        }
+        if (check.status === "failed") {
+          throw new Error(check.error || "GBits transaction failed");
+        }
+      }
+      // Still pending after polling — leave as PROCESSING, cron will reconcile
+      return { success: true, pending: true };
+    }
 
     await prisma.$transaction(async (tx: any) => {
       await tx.providerTransaction.update({ where: { transactionId }, data: { providerTransactionId: result.transaction_id, responsePayload: result, status: result.status, attemptCount: { increment: 1 }, lastAttemptAt: new Date() } });

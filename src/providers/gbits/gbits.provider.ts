@@ -28,10 +28,13 @@ async function authenticate(): Promise<string> {
     headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": UA },
     body: JSON.stringify({ username: GBITS_USERNAME, password: GBITS_PASSWORD }),
   });
+  if (!r.ok) throw new Error(`GBits auth HTTP ${r.status}`);
   const data = await r.json();
   if (data.errorCode !== 0) throw new Error(data.message || "GBits auth failed");
-  cachedToken = data.content.accessToken;
-  tokenExpiresAt = getTokenExpiry(cachedToken!);
+  const raw: string = data.content?.accessToken || data.content?.token || data.accessToken || "";
+  if (!raw) throw new Error("GBits auth: no token in response");
+  cachedToken = raw.startsWith("Bearer ") ? raw : `Bearer ${raw}`;
+  tokenExpiresAt = getTokenExpiry(raw);
   return cachedToken!;
 }
 
@@ -50,6 +53,28 @@ async function gbitsGet(path: string): Promise<any> {
     const freshToken = await authenticate();
     const retry = await fetch(`${GBITS_API_URL}${path}`, {
       headers: { Authorization: freshToken, Accept: "application/json", "User-Agent": UA },
+    });
+    if (!retry.ok && retry.status !== 200) throw new Error(`GBits GET ${path} HTTP ${retry.status}`);
+    return retry.json();
+  }
+  if (!r.ok) throw new Error(`GBits GET ${path} HTTP ${r.status}`);
+  return r.json();
+}
+
+async function gbitsPost(path: string, body: Record<string, any>): Promise<any> {
+  const token = await getToken();
+  const r = await fetch(`${GBITS_API_URL}${path}`, {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json", Accept: "application/json", "User-Agent": UA },
+    body: JSON.stringify(body),
+  });
+  if (r.status === 401) {
+    cachedToken = null;
+    const freshToken = await authenticate();
+    const retry = await fetch(`${GBITS_API_URL}${path}`, {
+      method: "POST",
+      headers: { Authorization: freshToken, "Content-Type": "application/json", Accept: "application/json", "User-Agent": UA },
+      body: JSON.stringify(body),
     });
     return retry.json();
   }
@@ -177,33 +202,23 @@ export async function refreshSkuCache(): Promise<{ count: number; refreshedAt: s
 }
 
 export async function purchaseLoad(params: PurchaseLoadParams) {
-  const token = await getToken();
-  // Use externalReference as the GBits transactionId for traceability
   const txnId = params.externalReference.replace(/[^A-Z0-9]/gi, "").slice(0, 30).toUpperCase();
 
-  const query = new URLSearchParams({ address: params.mobileNumber, transactionId: txnId });
+  const body: Record<string, any> = {
+    businessId: GBITS_BUSINESS_ID,
+    businessCode: GBITS_BUSINESS_CODE,
+    address: params.mobileNumber,
+    transactionId: txnId,
+  };
   if (params.promoId) {
-    query.append("promoId", String(params.promoId));
+    body.promoId = params.promoId;
   } else {
-    query.append("amount", String(params.amount));
+    body.amount = params.amount;
   }
 
-  console.log(`[gbits] purchaseLoad URL: POST /eload/buy?${query.toString()}`);
-
-  let r = await fetch(`${GBITS_API_URL}/eload/buy?${query.toString()}`, {
-    method: "POST",
-    headers: { Authorization: token, Accept: "application/json", "User-Agent": UA },
-  });
-  if (r.status === 401) {
-    cachedToken = null;
-    const freshToken = await authenticate();
-    r = await fetch(`${GBITS_API_URL}/eload/buy?${query.toString()}`, {
-      method: "POST",
-      headers: { Authorization: freshToken, Accept: "application/json", "User-Agent": UA },
-    });
-  }
-  const result = await r.json();
-  console.log(`[gbits] purchaseLoad response HTTP ${r.status}:`, JSON.stringify(result));
+  console.log(`[gbits] purchaseLoad body:`, JSON.stringify(body));
+  const result = await gbitsPost("/eload/buy", body);
+  console.log(`[gbits] purchaseLoad response:`, JSON.stringify(result));
 
   if (result.errorCode === 0) {
     return { status: "completed", transaction_id: result.content?.transactionId || txnId, balance: result.content?.balance ?? null };
@@ -211,7 +226,6 @@ export async function purchaseLoad(params: PurchaseLoadParams) {
   if (result.errorCode === 105) {
     return { status: "pending", transaction_id: result.content?.transactionId || txnId, balance: result.content?.balance ?? null };
   }
-  // Map known GBits error codes to clear messages
   const gbitsErrors: Record<number, string> = {
     100: "GBits: Invalid request parameters.",
     101: "GBits: Invalid mobile number format.",
@@ -254,7 +268,7 @@ export async function getGbitsTransactions(page = 1, limit = 10): Promise<{ tran
 }
 
 export async function checkTransaction(reference: string) {
-  const data = await gbitsGet(`/eload/status/${reference}`);
+  const data = await gbitsGet(`/eload/status?transactionId=${encodeURIComponent(reference)}`);
   const raw = (data.content?.status || "").toLowerCase();
   if (["success", "completed", "successful"].includes(raw)) return { status: "completed", txnId: reference };
   if (["failed", "failure", "cancelled", "canceled", "rejected"].includes(raw)) return { status: "failed", error: data.content?.description || data.message };

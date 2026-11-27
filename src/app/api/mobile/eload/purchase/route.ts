@@ -29,12 +29,16 @@ export const POST = requireAuth(async (req: NextRequest, payload: JwtPayload) =>
 
   const wallet = await prisma.wallet.findUnique({ where: { userId: payload.userId } });
   if (!wallet || wallet.status !== "ACTIVE") return fail("Your wallet is not active", 403);
-  if (Number(wallet.availableBalance) <= 0) return fail("Insufficient balance", 400, "INSUFFICIENT_BALANCE");
+
+  // Pre-check balance before queuing — initiateEload will do the atomic reserve
+  const fee = await calculateFee(FeeService.ELOAD, loadAmount);
+  const totalRequired = loadAmount + fee;
+  if (Number(wallet.availableBalance) < totalRequired)
+    return fail("Insufficient balance", 400, "INSUFFICIENT_BALANCE");
 
   try {
     const transaction = await initiateEload(payload.userId, mobileNumber, productCode, network, loadAmount, promoId);
-    const fee = await calculateFee(FeeService.ELOAD, loadAmount);
-    return ok({ transactionNumber: transaction.transactionNumber, status: transaction.status, fee, total: loadAmount + fee });
+    return ok({ transactionNumber: transaction.transactionNumber, status: transaction.status, fee, total: totalRequired });
   } catch (err: any) {
     return fail(err.message, 400);
   }
