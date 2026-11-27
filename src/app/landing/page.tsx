@@ -4,6 +4,7 @@ import {
   Wallet, CheckCircle, Star, ChevronRight
 } from "lucide-react";
 import LandingNav from "./nav";
+import LandingFooter from "./footer";
 
 const features = [
   { icon: Wallet, title: "Digital Wallet", desc: "Store, manage, and track your money securely — your balance is always up to date.", color: "bg-teal-50 text-teal-600" },
@@ -249,35 +250,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#17202A] text-gray-400 py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid sm:grid-cols-4 gap-8 mb-10">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <img src="/icons/icon-192.png" alt="CashIn Tap" className="w-12 h-12" />
-              </div>
-              <p className="text-sm leading-relaxed">Your trusted digital wallet for e-load, cash out, and more.</p>
-            </div>
-            {[
-              { title: "Product", links: ["Features", "Security"] },
-              { title: "Company", links: ["About", "Blog", "Careers"] },
-              { title: "Support", links: ["Help Center", "Contact", "Privacy Policy"] },
-            ].map(({ title, links }) => (
-              <div key={title}>
-                <p className="text-white font-semibold mb-4 text-sm">{title}</p>
-                <ul className="space-y-2">
-                  {links.map(l => <li key={l}><a href="#" className="text-sm hover:text-white transition-colors">{l}</a></li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm">© 2026 CashIn Tap. All rights reserved.</p>
-            <p className="text-sm">cashin-tap.com</p>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
