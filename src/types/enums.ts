@@ -8,6 +8,7 @@ export const TransactionType = {
   WALLET_FUND: "WALLET_FUND",
   ELOAD: "ELOAD",
   CASHOUT: "CASHOUT",
+  QRPH_SEND: "QRPH_SEND",
   REFUND: "REFUND",
   REVERSAL: "REVERSAL",
   ADMIN_ADJUSTMENT: "ADMIN_ADJUSTMENT",
@@ -29,7 +30,7 @@ export type TransactionStatus = keyof typeof TransactionStatus;
 export const Provider = { PAYMONGO: "PAYMONGO", GBITS: "GBITS", SYSTEM: "SYSTEM" } as const;
 export type Provider = keyof typeof Provider;
 
-export const FeeService = { WALLET_FUND: "WALLET_FUND", ELOAD: "ELOAD", CASHOUT: "CASHOUT" } as const;
+export const FeeService = { WALLET_FUND: "WALLET_FUND", ELOAD: "ELOAD", CASHOUT: "CASHOUT", QRPH_SEND: "QRPH_SEND" } as const;
 export type FeeService = keyof typeof FeeService;
 
 export const FeeType = { FIXED: "FIXED", PERCENTAGE: "PERCENTAGE" } as const;

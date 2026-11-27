@@ -128,6 +128,42 @@ export async function getCheckoutSession(sessionId: string) {
   return data.data;
 }
 
+// ── QR Ph Outbound Send (InstaPay / P2M) ─────────────────────────────────────
+// Flat ₱10.00 fee per transfer charged by PayMongo
+export const QRPH_SEND_FEE = 10;
+
+export interface SendQRPhParams {
+  externalId: string;
+  amount: number;       // amount to send (excluding fee)
+  qrPayload: string;    // raw QR Ph string scanned by user
+  remarks?: string;
+}
+
+export async function sendQRPh(params: SendQRPhParams) {
+  try {
+    const { data } = await getClient().post("/qrph_transfers", {
+      data: {
+        attributes: {
+          amount: Math.round(params.amount * 100),
+          currency: "PHP",
+          qr_payload: params.qrPayload,
+          remarks: params.remarks ?? `CashIn Tap - ${params.externalId}`,
+          reference_number: params.externalId,
+        },
+      },
+    });
+    return data.data;
+  } catch (err: any) {
+    const pmError = err?.response?.data?.errors?.[0];
+    throw new Error(pmError?.detail || pmError?.code || "PayMongo QR Ph send failed");
+  }
+}
+
+export async function getQRPhTransfer(transferId: string) {
+  const { data } = await getClient().get(`/qrph_transfers/${transferId}`);
+  return data.data;
+}
+
 // ── Bank Disbursements ────────────────────────────────────────────────────────
 
 export interface CreatePayMongoDisbursementParams {

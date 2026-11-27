@@ -5,5 +5,6 @@ const connection = redis;
 
 export const eloadQueue = new Queue("eload", { connection });
 export const cashoutQueue = new Queue("cashout", { connection });
+export const qrphSendQueue = new Queue("qrph-send", { connection });
 export const webhookQueue = new Queue("webhook", { connection });
 export const notificationQueue = new Queue("notification", { connection });

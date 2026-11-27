@@ -3,6 +3,7 @@ import { Worker } from "bullmq";
 import { redis } from "@/lib/redis/client";
 import { processEload } from "@/services/eload/eload.service";
 import { processCashout } from "@/services/cashout/cashout.service";
+import { processQRPhSend } from "@/services/qrph-send/qrph-send.service";
 
 process.on("uncaughtException", (err) => console.error("[worker] uncaughtException:", err));
 process.on("unhandledRejection", (err) => console.error("[worker] unhandledRejection:", err));
@@ -34,6 +35,19 @@ const cashoutWorker = new Worker(
 cashoutWorker.on("completed", (job) => console.log(`[cashout] job ${job.id} completed`));
 cashoutWorker.on("failed", (job, err) => console.error(`[cashout] job ${job?.id} failed:`, err.message));
 cashoutWorker.on("error", (err) => console.error("[cashout] worker error:", err));
+
+const qrphSendWorker = new Worker(
+  "qrph-send",
+  async (job) => {
+    const { transactionId, holdId } = job.data;
+    console.log(`[qrph-send] processing job ${job.id} txn=${transactionId}`);
+    return processQRPhSend(transactionId, holdId);
+  },
+  { connection, concurrency: 3 }
+);
+qrphSendWorker.on("completed", (job) => console.log(`[qrph-send] job ${job.id} completed`));
+qrphSendWorker.on("failed", (job, err) => console.error(`[qrph-send] job ${job?.id} failed:`, err.message));
+qrphSendWorker.on("error", (err) => console.error("[qrph-send] worker error:", err));
 
 const notificationWorker = new Worker(
   "notification",

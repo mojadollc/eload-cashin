@@ -49,6 +49,7 @@ enum TransactionType {
   WALLET_FUND
   ELOAD
   CASHOUT
+  QRPH_SEND
   REFUND
   REVERSAL
   ADMIN_ADJUSTMENT
@@ -74,6 +75,7 @@ enum FeeService {
   WALLET_FUND
   ELOAD
   CASHOUT
+  QRPH_SEND
 }
 
 enum Provider {
@@ -212,6 +214,7 @@ model Transaction {
   eloadTxn          EloadTransaction?
   cashoutTxn        CashoutTransaction?
   fundingTxn        FundingTransaction?
+  qrphSendTxn       QrphSendTransaction?
 
   @@index([userId, type, status, createdAt])
 }
@@ -295,6 +298,19 @@ model CashoutTransaction {
   cashoutStatus   CashoutStatus @default(PENDING)
 
   transaction     Transaction   @relation(fields: [transactionId], references: [id])
+}
+
+model QrphSendTransaction {
+  id               String   @id @default(cuid())
+  transactionId    String   @unique
+  qrPayload        String
+  recipientName    String
+  recipientBank    String
+  recipientAccount String
+  transferId       String?
+  transferStatus   String?
+
+  transaction      Transaction @relation(fields: [transactionId], references: [id])
 }
 
 model FeeRule {

@@ -22,6 +22,7 @@ export function generateTransactionNumber(type: string) {
     WALLET_FUND: "WF",
     ELOAD: "EL",
     CASHOUT: "CO",
+    QRPH_SEND: "QS",
     REFUND: "RF",
     REVERSAL: "RV",
     ADMIN_ADJUSTMENT: "AA",

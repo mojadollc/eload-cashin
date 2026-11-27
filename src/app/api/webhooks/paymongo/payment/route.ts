@@ -3,6 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import { verifyPayMongoWebhook } from "@/providers/paymongo/paymongo.provider";
 import { creditWallet } from "@/services/wallet/wallet.service";
 import { TransactionStatus } from "@/types/enums";
+import { finalizeQRPhSend } from "@/services/qrph-send/qrph-send.service";
 import axios from "axios";
 
 function getPayMongoClient() {
@@ -46,6 +47,27 @@ export async function POST(req: NextRequest) {
         error: "Signature verification failed",
       },
     }).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── qrph_transfer.updated (outbound QR Ph send finalization) ──
+  if (eventType === "qrph_transfer.updated") {
+    const transferData = payload?.data?.attributes?.data;
+    const transferId: string = transferData?.id || payload?.data?.id || "";
+    const transferStatus: string = transferData?.attributes?.status || "";
+
+    if (!transferId) return NextResponse.json({ ok: true });
+
+    const alreadyDone = await prisma.providerWebhook.findFirst({
+      where: { reference: transferId, processed: true, eventType: "qrph_transfer.updated" },
+    });
+    if (alreadyDone) return NextResponse.json({ ok: true });
+
+    await prisma.providerWebhook.create({
+      data: { provider: "PAYMONGO", eventType, payload, reference: transferId },
+    });
+
+    await finalizeQRPhSend(transferId, transferStatus.toUpperCase());
     return NextResponse.json({ ok: true });
   }
 
